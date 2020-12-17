@@ -1,0 +1,6 @@
+numpy
+uproot3
+awkward0
+numba
+pandas
+tqdm
