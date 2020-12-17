@@ -2,8 +2,9 @@ import functools
 import numba
 import numpy as np
 
-from parse import suffix_vars_in_expr
 from yahist import Hist1D
+
+from .parse import suffix_vars_in_expr
 
 numba.set_num_threads(min(numba.get_num_threads(), 4))
 

@@ -4,8 +4,8 @@ import pandas as pd
 import uproot # uproot3
 from yahist import Hist1D, Hist2D
 
-from query import hacky_query_eval
-from parse import variables_in_expr, nops_in_expr
+from .query import hacky_query_eval
+from .parse import variables_in_expr, nops_in_expr
 
 def tree_draw(df, varexp, sel="", **kwargs):
     from tokenize import tokenize, NAME, OP

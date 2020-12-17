@@ -16,12 +16,12 @@ dependency_links = [
 ]
 
 setup(
-    name="yahist",
+    name="pdroot",
     version=__version__,
-    description="Yet another histogram object with numpy and matplotlib",
+    description="utilities for working with ROOT files and pandas",
     long_description="See github for fully rendered README",
-    url="https://github.com/aminnj/yahist",
-    download_url="https://github.com/aminnj/yahist/tarball/" + __version__,
+    url="https://github.com/aminnj/pdroot",
+    download_url="https://github.com/aminnj/pdroot/tarball/" + __version__,
     license="BSD",
     classifiers=[
         "License :: OSI Approved :: MIT License",
