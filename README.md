@@ -1,3 +1,10 @@
+### Installation
+```
+pip install pdroot
+```
+
+### Usage
+
 ```python
 import pdroot
 ```
