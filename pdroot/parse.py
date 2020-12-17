@@ -40,6 +40,7 @@ def nops_in_expr(expr):
         toknum, tokval = x[:2]
         nops += (toknum == NAME) and (tokval in ["and", "or"])
         nops += toknum == OP
+    return nops
 
 def suffix_vars_in_expr(expr, suffix):
     """
