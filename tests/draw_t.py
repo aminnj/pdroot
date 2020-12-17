@@ -39,8 +39,21 @@ class DrawTest(unittest.TestCase):
         self.assertEqual(h.integral, 1000.0)
 
     def test_jitdraw_1d(self):
+        np.random.seed(42)
         df = make_df(1000)
         bins = np.linspace(0, 2, 11)
+
+        # one function, has jit cost
+        c1 = df.jitdraw("a", "b>0.5", bins=bins).counts
+        c2, _ = np.histogram(df["a"][df["b"] > 0.5], bins=bins)
+        self.assertTrue(np.allclose(c1, c2))
+
+        # different function
+        c1 = df.jitdraw("b", "c>0.5", bins=bins).counts
+        c2, _ = np.histogram(df["b"][df["c"] > 0.5], bins=bins)
+        self.assertTrue(np.allclose(c1, c2))
+
+        # first function, no jit cost
         c1 = df.jitdraw("a", "b>0.5", bins=bins).counts
         c2, _ = np.histogram(df["a"][df["b"] > 0.5], bins=bins)
         self.assertTrue(np.allclose(c1, c2))

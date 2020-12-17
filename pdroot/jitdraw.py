@@ -6,8 +6,6 @@ from yahist import Hist1D
 
 from .parse import suffix_vars_in_expr
 
-numba.set_num_threads(min(numba.get_num_threads(), 4))
-
 
 @numba.njit()
 def compute_bin_1d_uniform(x, nbins, b_min, b_max, overflow=False):
@@ -32,13 +30,13 @@ def get_executable_str_and_vars(varexp, cut):
     vars_first = vars_all[0]
 
     template = f"""
-@numba.jit(nopython=True, fastmath=True, nogil=True, parallel=True)
+@numba.jit(nopython=True, nogil=True)
 def temp_func({vars_comma_sep}, bins):
     b_min = bins[0]
     b_max = bins[-1]
     nbins = bins.shape[0] - 1
     hist = np.zeros(nbins, dtype=np.float64)
-    for i in numba.prange(len({vars_first})):
+    for i in range(len({vars_first})):
         if {cut_suffix}:
             value = {varexp_suffix}
             ibin = compute_bin_1d_uniform(value, nbins, b_min, b_max)
