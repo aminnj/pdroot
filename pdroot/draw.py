@@ -1,7 +1,11 @@
 import time
 import numpy as np
 import pandas as pd
-import uproot # uproot3
+
+warnings.simplefilter("ignore", category=FutureWarning)
+import uproot3 as uproot
+warnings.resetwarnings()
+
 from yahist import Hist1D, Hist2D
 
 from .query import hacky_query_eval

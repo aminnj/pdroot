@@ -1,13 +1,13 @@
+import warnings
 import numpy as np
 import pandas as pd
-import warnings
+from tqdm.auto import tqdm
 
 warnings.simplefilter("ignore", category=FutureWarning)
 import uproot3 as uproot
 import awkward0 as awkward
 warnings.resetwarnings()
 
-from tqdm.auto import tqdm
 
 
 def read_root(filename, treename="t", columns=None, progress=False, **kwargs):
