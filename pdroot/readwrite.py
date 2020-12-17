@@ -6,8 +6,8 @@ from tqdm.auto import tqdm
 warnings.simplefilter("ignore", category=FutureWarning)
 import uproot3 as uproot
 import awkward0 as awkward
-warnings.resetwarnings()
 
+warnings.resetwarnings()
 
 
 def read_root(filename, treename="t", columns=None, progress=False, **kwargs):
@@ -36,18 +36,24 @@ def read_root(filename, treename="t", columns=None, progress=False, **kwargs):
     if progress:
         iterable = tqdm(iterable)
     f = uproot.open(filename)
-    categorical_columns = [k.decode().split("_",1)[1].rsplit(";",1)[0] for k in f.keys() if k.startswith(b"categories_")]
+    categorical_columns = [
+        k.decode().split("_", 1)[1].rsplit(";", 1)[0]
+        for k in f.keys()
+        if k.startswith(b"categories_")
+    ]
+
     def to_df(chunk):
         for column in list(chunk.keys()):
             vals = chunk[column]
-            if (vals.dtype == "object") and (column+"_strn" in chunk.keys()):
-                del chunk[column+"_strn"]
+            if (vals.dtype == "object") and (column + "_strn" in chunk.keys()):
+                del chunk[column + "_strn"]
                 chunk[column] = awkward.StringArray.fromjagged(vals.astype("uint8"))
             elif column in categorical_columns:
                 sep = "<!SEP!>"
                 categories = np.array(f[f"categories_{column}"].decode().split(sep))
                 chunk[column] = categories[vals]
         return pd.DataFrame(chunk)
+
     df = pd.concat(map(to_df, iterable), ignore_index=True, sort=True)
     return df
 
@@ -68,13 +74,15 @@ def to_root(
     string_branches = []
     category_branches = []
     for bname, dtype in df.dtypes.items():
-        if (dtype == "object"):
+        if dtype == "object":
             if type(df.iloc[0][bname]) in [str]:
-                tree_dtypes[bname] = uproot.newbranch(np.dtype(">i2"), size=bname+"_strn", compression=uproot.ZLIB(6))
+                tree_dtypes[bname] = uproot.newbranch(
+                    np.dtype(">i2"), size=bname + "_strn", compression=uproot.ZLIB(6)
+                )
                 string_branches.append(bname)
             else:
                 raise Exception(f"Don't know what kind of branch {bname} is.")
-        elif (str(dtype) == "category"):
+        elif str(dtype) == "category":
             tree_dtypes[bname] = np.int8
             category_branches.append(bname)
         else:
@@ -98,10 +106,9 @@ def to_root(
                     jagged = awkward.StringArray.fromnumpy(arr)._content
                     jagged = jagged[jagged != 0]
                     basket[column] = jagged
-                    basket[column+"_strn"] = jagged.counts
+                    basket[column + "_strn"] = jagged.counts
                 elif column in category_branches:
                     basket[column] = chunk[column].cat.codes.values.astype(np.int8)
                 else:
                     basket[column] = chunk[column].values
             f[treename].extend(basket)
-

@@ -2,14 +2,18 @@ import time
 import numpy as np
 import pandas as pd
 
+import warnings
+
 warnings.simplefilter("ignore", category=FutureWarning)
 import uproot3 as uproot
+
 warnings.resetwarnings()
 
 from yahist import Hist1D, Hist2D
 
 from .query import hacky_query_eval
 from .parse import variables_in_expr, nops_in_expr
+
 
 def tree_draw(df, varexp, sel="", **kwargs):
     from tokenize import tokenize, NAME, OP
@@ -32,7 +36,7 @@ def tree_draw(df, varexp, sel="", **kwargs):
     else:
         mask = df.eval(sel)
     if twodim:
-        assert(varexp.count(":") == 1)
+        assert varexp.count(":") == 1
         varexp1, varexp2 = varexp.split(":")
         vals = np.c_[df[mask].eval(varexp1), df[mask].eval(varexp2)]
         return Hist2D(vals, **kwargs)
@@ -40,7 +44,10 @@ def tree_draw(df, varexp, sel="", **kwargs):
         vals = df[mask].eval(varexp)
         return Hist1D(vals, **kwargs)
 
-def iter_draw(path, varexp, sel="", treepath="t", progress=False, entrysteps="50MB", **kwargs):
+
+def iter_draw(
+    path, varexp, sel="", treepath="t", progress=False, entrysteps="50MB", **kwargs
+):
     """
     Same as `tree_draw`, except this requires an additional first argument for the path/pattern
     of input root files. Tree name is specified via `treepath`.
@@ -52,17 +59,21 @@ def iter_draw(path, varexp, sel="", treepath="t", progress=False, entrysteps="50
     nevents = 0
     edges = None
     branches = variables_in_expr(varexp + ":" + sel)
-    iterable = enumerate(uproot.iterate(path,
-                                  treepath="t",
-                                  entrysteps=entrysteps,
-                                  branches=branches,
-                                  namedecode="ascii",
-                                  outputtype=pd.DataFrame,
-                                 ))
+    iterable = enumerate(
+        uproot.iterate(
+            path,
+            treepath="t",
+            entrysteps=entrysteps,
+            branches=branches,
+            namedecode="ascii",
+            outputtype=pd.DataFrame,
+        )
+    )
     if progress:
         from tqdm.auto import tqdm
+
         iterable = tqdm(iterable)
-    for i,df in iterable:
+    for i, df in iterable:
         nevents += len(df)
         if i >= 1 and "bins" not in kwargs:
             kwargs["bins"] = edges

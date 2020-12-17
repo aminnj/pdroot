@@ -61,4 +61,3 @@ def hacky_query_eval(df, varstr, selstr="", verbose=False):
         print(f"Evaluating string: {toeval}")
     result = eval(toeval)
     return result
-

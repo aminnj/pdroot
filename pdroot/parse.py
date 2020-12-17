@@ -1,6 +1,7 @@
 from io import BytesIO
 from tokenize import tokenize, NAME, ENCODING
 
+
 def variables_in_expr(expr):
     """
     Given a string like "DV_x:DV_y:(lxy < DV_x+1) and (lxy>1)", returns a list of
@@ -25,6 +26,7 @@ def variables_in_expr(expr):
     varnames = list(set(varnames))
     return varnames
 
+
 def nops_in_expr(expr):
     """
     Number of mathematical/logical operations in an expression
@@ -41,6 +43,7 @@ def nops_in_expr(expr):
         nops += (toknum == NAME) and (tokval in ["and", "or"])
         nops += toknum == OP
     return nops
+
 
 def suffix_vars_in_expr(expr, suffix):
     """
@@ -65,4 +68,3 @@ def suffix_vars_in_expr(expr, suffix):
             continue
         varnames.append(tokval)
     return buff, varnames
-

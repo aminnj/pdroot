@@ -8,6 +8,7 @@ from .parse import suffix_vars_in_expr
 
 numba.set_num_threads(min(numba.get_num_threads(), 4))
 
+
 @numba.njit()
 def compute_bin_1d_uniform(x, nbins, b_min, b_max, overflow=False):
     if overflow:
@@ -20,6 +21,7 @@ def compute_bin_1d_uniform(x, nbins, b_min, b_max, overflow=False):
         return -1
     else:
         return ibin
+
 
 def get_executable_str_and_vars(varexp, cut):
     cut_suffix, cut_vars = suffix_vars_in_expr(cut, suffix="[i]")
@@ -46,6 +48,7 @@ def temp_func({vars_comma_sep}, bins):
     """
     return template, vars_all
 
+
 def string_to_function(s):
     """
     takes string containing function def via `def`
@@ -54,7 +57,7 @@ def string_to_function(s):
     """
     defline = filter(lambda x: x.startswith("def "), s.strip().splitlines()[:2])
     defline = list(defline)[0]
-    funcname = defline.split(" ",1)[1].split("(",1)[0]
+    funcname = defline.split(" ", 1)[1].split("(", 1)[0]
     exec(s)
     return locals()[funcname]
 
@@ -64,6 +67,7 @@ def get_jitfunc_and_vars(varexp, cut):
     s, vars_all = get_executable_str_and_vars(varexp, cut)
     func = string_to_function(s)
     return func, vars_all
+
 
 def jitdraw(df, varexp, cut, bins=np.linspace(0, 1, 10)):
     f, vars_all = get_jitfunc_and_vars(varexp, cut)
