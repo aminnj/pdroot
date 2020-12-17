@@ -1,5 +1,6 @@
 numpy
 xxhash
+lz4
 uproot3
 awkward0
 numba
