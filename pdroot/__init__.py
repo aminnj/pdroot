@@ -7,7 +7,7 @@ PandasObject.draw = tree_draw
 from .jitdraw import jitdraw
 PandasObject.jitdraw = jitdraw
 
-from .rw import read_root, to_root
+from .readwrite import read_root, to_root
 setattr(pandas, "read_root", read_root)
 PandasObject.to_root = to_root
 

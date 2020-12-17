@@ -1,7 +1,12 @@
 import numpy as np
 import pandas as pd
-import uproot # uproot3
-import awkward # awkward0
+import warnings
+
+warnings.simplefilter("ignore", category=FutureWarning)
+import uproot3 as uproot
+import awkward0 as awkward
+warnings.resetwarnings()
+
 from tqdm.auto import tqdm
 
 
