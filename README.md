@@ -49,3 +49,9 @@ df.jitdraw("mass:foo+1", "0.1<foo<0.2")
 ```python
 pdroot.iter_draw("*.root", "mass", "(foo>0.2)", bins="200,0,10")
 ```
+
+* [*EXPERIMENTAL*] Draw directly from NanoAOD files (which have jagged branches)
+```python
+h = pdroot.iter_draw_nano("*.root", "Electron_pt", "abs(Electron_eta)>2.0 and Electron_pt>25", bins=np.linspace(0,100,100))
+h.plot()
+```

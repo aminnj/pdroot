@@ -4,7 +4,7 @@ import numpy as np
 
 from yahist import Hist1D
 
-from .parse import suffix_vars_in_expr
+from .parse import sandwich_vars_in_expr
 
 
 @numba.njit()
@@ -21,9 +21,9 @@ def compute_bin_1d_uniform(x, nbins, b_min, b_max, overflow=False):
         return ibin
 
 
-def get_executable_str_and_vars(varexp, cut):
-    cut_suffix, cut_vars = suffix_vars_in_expr(cut, suffix="[i]")
-    varexp_suffix, varexp_vars = suffix_vars_in_expr(varexp, suffix="[i]")
+def get_executable_str_and_vars_flat(varexp, cut):
+    cut_suffix, cut_vars = sandwich_vars_in_expr(cut, suffix="[i]")
+    varexp_suffix, varexp_vars = sandwich_vars_in_expr(varexp, suffix="[i]")
 
     vars_all = sorted(list(set(cut_vars + varexp_vars)))
     vars_comma_sep = ",".join(vars_all)
@@ -46,6 +46,33 @@ def temp_func({vars_comma_sep}, bins):
     """
     return template, vars_all
 
+def get_executable_str_and_vars_nano(varexp, cut):
+    cut_suffix, cut_vars = sandwich_vars_in_expr(cut, prefix="event.", suffix="[i]")
+    varexp_suffix, varexp_vars = sandwich_vars_in_expr(varexp, prefix="event.", suffix="[i]")
+
+    vars_all = sorted(list(set(cut_vars + varexp_vars)))
+    vars_comma_sep = ",".join(vars_all)
+    vars_first = vars_all[0]
+
+    template = f"""
+@numba.jit(nopython=True, nogil=True)
+def temp_func(events, bins):
+    b_min = bins[0]
+    b_max = bins[-1]
+    nbins = bins.shape[0] - 1
+    hist = np.zeros(nbins, dtype=np.float64)
+    for ievent in range(len(events)):
+        event = events[ievent]
+        for i in range(len(event["{vars_first}"])):
+            if {cut_suffix}:
+                value = {varexp_suffix}
+                ibin = compute_bin_1d_uniform(value, nbins, b_min, b_max)
+                if ibin >= 0:
+                    hist[ibin] += 1
+    return hist
+    """
+    return template, vars_all
+
 
 def string_to_function(s):
     """
@@ -59,15 +86,25 @@ def string_to_function(s):
     exec(s)
     return locals()[funcname]
 
+@functools.lru_cache(maxsize=128)
+def get_jitfunc_and_vars_flat(varexp, cut):
+    s, vars_all = get_executable_str_and_vars_flat(varexp, cut)
+    func = string_to_function(s)
+    return func, vars_all
+
 
 @functools.lru_cache(maxsize=128)
-def get_jitfunc_and_vars(varexp, cut):
-    s, vars_all = get_executable_str_and_vars(varexp, cut)
+def get_jitfunc_and_vars_nano(varexp, cut):
+    s, vars_all = get_executable_str_and_vars_nano(varexp, cut)
     func = string_to_function(s)
     return func, vars_all
 
 
 def jitdraw(df, varexp, cut, bins=np.linspace(0, 1, 10)):
-    f, vars_all = get_jitfunc_and_vars(varexp, cut)
+    f, vars_all = get_jitfunc_and_vars_flat(varexp, cut)
     to_eval = "f(" + ", ".join([f'df["{v}"].values' for v in vars_all]) + ", bins" + ")"
     return Hist1D.from_bincounts(eval(to_eval), bins)
+
+def jitdraw_nano(events, varexp, cut, bins=np.linspace(0, 1, 10)):
+    f, vars_all = get_jitfunc_and_vars_nano(varexp, cut)
+    return Hist1D.from_bincounts(f(events, bins), bins)

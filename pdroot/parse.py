@@ -20,7 +20,7 @@ def variables_in_expr(expr):
             continue
         if ix < len(g) - 1 and g[ix + 1][1] in [".", "("]:
             continue
-        if tokval in ["and", "or"]:
+        if tokval in ["and", "or","abs","max","min","sum"]:
             continue
         varnames.append(tokval)
     varnames = list(set(varnames))
@@ -45,9 +45,10 @@ def nops_in_expr(expr):
     return nops
 
 
-def suffix_vars_in_expr(expr, suffix):
+def sandwich_vars_in_expr(expr, prefix="", suffix=""):
     """
-    appends `suffix` to variables in an expression string
+    prepends `prefix`, and appends `suffix`
+    to variables in an expression string
     """
 
     varnames = []
@@ -56,15 +57,14 @@ def suffix_vars_in_expr(expr, suffix):
     varnames = []
     for ix, x in enumerate(g):
         toknum, tokval = x[:2]
-        if toknum not in [ENCODING]:
-            buff += tokval
-        if toknum == NAME:
-            buff += suffix
+        if toknum in [ENCODING]: continue
         if toknum != NAME:
+            buff += tokval
             continue
-        if ix > 0 and g[ix - 1][1] in ["."]:
+        if (tokval in ["and", "or","abs","max","min","sum"]):
+            buff += f" {tokval} "
             continue
-        if ix < len(g) - 1 and g[ix + 1][1] in [".", "("]:
-            continue
+        else:
+            buff += f"{prefix}{tokval}{suffix}"
         varnames.append(tokval)
     return buff, varnames

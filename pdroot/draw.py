@@ -5,7 +5,8 @@ import pandas as pd
 import warnings
 
 warnings.simplefilter("ignore", category=FutureWarning)
-import uproot3 as uproot
+import uproot3
+import uproot4
 
 warnings.resetwarnings()
 
@@ -60,9 +61,9 @@ def iter_draw(
     edges = None
     branches = variables_in_expr(varexp + ":" + sel)
     iterable = enumerate(
-        uproot.iterate(
+        uproot3.iterate(
             path,
-            treepath="t",
+            treepath=treepath,
             entrysteps=entrysteps,
             branches=branches,
             namedecode="ascii",
@@ -79,6 +80,40 @@ def iter_draw(
             kwargs["bins"] = edges
         h = df.draw(varexp, sel, **kwargs)
         edges = h.edges
+        hists.append(h)
+    h = sum(hists)
+    t1 = time.time()
+    if progress:
+        print(f"Processed {nevents} in {t1-t0:.2f}s ({1e-6*nevents/(t1-t0):.2f}MHz)")
+    return h
+
+def iter_draw_nano(
+    path, varexp, sel="", bins=np.linspace(-50,50,10), treepath="Events", progress=False, step_size=250000, nthreads=4, **kwargs
+):
+    import concurrent.futures
+    from .jitdraw import jitdraw_nano
+    hists = []
+    t0 = time.time()
+    nevents = 0
+    edges = None
+    branches = variables_in_expr(varexp + ":" + sel)
+    executor = concurrent.futures.ThreadPoolExecutor(nthreads)
+    iterable = enumerate(
+        uproot4.iterate(
+            {path:treepath},
+            expressions=branches,
+            step_size=step_size,
+            namedecode="ascii",
+            decompression_executor=executor,
+        )
+    )
+    if progress:
+        from tqdm.auto import tqdm
+
+        iterable = tqdm(iterable)
+    for i, events in iterable:
+        nevents += len(events)
+        h = jitdraw_nano(events, varexp, sel, bins)
         hists.append(h)
     h = sum(hists)
     t1 = time.time()

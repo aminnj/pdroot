@@ -4,7 +4,7 @@ import pandas as pd
 from tqdm.auto import tqdm
 
 warnings.simplefilter("ignore", category=FutureWarning)
-import uproot3 as uproot
+import uproot3 as uproot3
 import awkward0 as awkward
 
 warnings.resetwarnings()
@@ -24,7 +24,7 @@ def read_root(filename, treename="t", columns=None, progress=False, **kwargs):
     Passing `entrysteps=[(0, 10)]` will read the first 10 rows, for example.
     """
     # entrysteps of None iterates by basket to match `dataframe_to_ttree`
-    iterable = uproot.iterate(
+    iterable = uproot3.iterate(
         filename,
         treename,
         columns,
@@ -35,7 +35,7 @@ def read_root(filename, treename="t", columns=None, progress=False, **kwargs):
     )
     if progress:
         iterable = tqdm(iterable)
-    f = uproot.open(filename)
+    f = uproot3.open(filename)
     categorical_columns = [
         k.decode().split("_", 1)[1].rsplit(";", 1)[0]
         for k in f.keys()
@@ -59,7 +59,7 @@ def read_root(filename, treename="t", columns=None, progress=False, **kwargs):
 
 
 def to_root(
-    df, filename, treename="t", chunksize=1e6, compression=uproot.LZ4(1), progress=False
+    df, filename, treename="t", chunksize=1e6, compression=uproot3.LZ4(1), progress=False
 ):
     """
     Writes ROOT file containing one TTree with the input pandas DataFrame.
@@ -76,8 +76,8 @@ def to_root(
     for bname, dtype in df.dtypes.items():
         if dtype == "object":
             if type(df.iloc[0][bname]) in [str]:
-                tree_dtypes[bname] = uproot.newbranch(
-                    np.dtype(">i2"), size=bname + "_strn", compression=uproot.ZLIB(6)
+                tree_dtypes[bname] = uproot3.newbranch(
+                    np.dtype(">i2"), size=bname + "_strn", compression=uproot3.ZLIB(6)
                 )
                 string_branches.append(bname)
             else:
@@ -87,8 +87,8 @@ def to_root(
             category_branches.append(bname)
         else:
             tree_dtypes[bname] = dtype
-    with uproot.recreate(filename, compression=compression) as f:
-        t = uproot.newtree(tree_dtypes)
+    with uproot3.recreate(filename, compression=compression) as f:
+        t = uproot3.newtree(tree_dtypes)
         f[treename] = t
         for bname in category_branches:
             sep = "<!SEP!>"
