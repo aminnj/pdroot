@@ -88,7 +88,7 @@ def iter_draw(
     return h
 
 def iter_draw_nano(
-    path, varexp, sel="", bins=np.linspace(-50,50,10), treepath="Events", progress=False, step_size=250000, nthreads=4, **kwargs
+    path, varexp, sel="", bins=np.linspace(-50,50,10), treepath="Events", progress=True, step_size=250000, nthreads=4, **kwargs
 ):
     import concurrent.futures
     from .jitdraw import jitdraw_nano

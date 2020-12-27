@@ -1,7 +1,7 @@
 import pandas
 from pandas.core.base import PandasObject
 
-from .draw import tree_draw, iter_draw
+from .draw import tree_draw, iter_draw, iter_draw_nano
 
 PandasObject.draw = tree_draw
 
