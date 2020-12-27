@@ -3,7 +3,7 @@ xxhash
 lz4
 uproot3
 uproot4
-uproot_methods
+uproot3_methods
 awkward0
 awkward1
 fletcher

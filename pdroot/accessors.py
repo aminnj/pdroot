@@ -1,7 +1,7 @@
 import awkward0
 import awkward1
 import pandas as pd
-import uproot_methods
+import uproot3_methods
 
 @pd.api.extensions.register_series_accessor("ak")
 class AwkwardArrayAccessor:
@@ -33,4 +33,4 @@ class LorentzVectorAccessor:
         if len(missing_columns):
             raise AttributeError("Missing columns: {}".format(missing_columns))
         arrays = (awkward1.to_awkward0(self._obj[c].ak(version=1)) for c in components)
-        return uproot_methods.TLorentzVectorArray.from_ptetaphim(*arrays)
+        return uproot3_methods.TLorentzVectorArray.from_ptetaphim(*arrays)
