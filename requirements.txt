@@ -4,6 +4,8 @@ lz4
 uproot3
 uproot4
 awkward0
+awkward1
+fletcher
 numba
 pandas
 yahist

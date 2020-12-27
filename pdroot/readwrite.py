@@ -3,60 +3,53 @@ import numpy as np
 import pandas as pd
 from tqdm.auto import tqdm
 
-warnings.simplefilter("ignore", category=FutureWarning)
-import uproot3 as uproot3
-import awkward0 as awkward
+import uproot4
+import awkward1
 
+warnings.simplefilter("ignore", category=FutureWarning)
+import uproot3
 warnings.resetwarnings()
 
+warnings.filterwarnings("ignore", message="numpy.ufunc size changed")
 
-def read_root(filename, treename="t", columns=None, progress=False, **kwargs):
+def read_root(
+    filename, treename=None, columns=None, entry_start=None,  entry_stop=None,
+):
     """
     Read ROOT file containing one TTree into pandas DataFrame.
-    Thin wrapper around `uproot.iterate`.
+    See documentation for `uproot4.open` and `uproot4.arrays`.
 
-    filename: filename(s)/file pattern(s)
-    treename: name of input TTree
-    progress: show tqdm progress bar?
+    filename: filename/file pattern
+    treename: name of input TTree. If `None`, defaults to the only tree in a file, otherwise prefers `Events`.
     columns: list of columns ("branches") to read (default of `None` reads all)
-    **kwargs: extra kwargs to pass to `uproot.iterate`
-
-    Passing `entrysteps=[(0, 10)]` will read the first 10 rows, for example.
+    entry_start: start entry index (default of `None` means start of file)
+    entry_stop: stop entry index (default of `None` means end of file)
     """
-    # entrysteps of None iterates by basket to match `dataframe_to_ttree`
-    iterable = uproot3.iterate(
-        filename,
-        treename,
-        columns,
-        entrysteps=kwargs.pop("entrysteps", None),
-        outputtype=dict,
-        namedecode="ascii",
-        **kwargs,
-    )
-    if progress:
-        iterable = tqdm(iterable)
-    f = uproot3.open(filename)
-    categorical_columns = [
-        k.decode().split("_", 1)[1].rsplit(";", 1)[0]
-        for k in f.keys()
-        if k.startswith(b"categories_")
-    ]
+    f = uproot4.open(filename)
+    if treename is None:
+        treenames = [n.rsplit(";",1)[0] for n in f.keys()]
+        if len(treenames) == 1:
+            treename = treenames[0]
+        elif "Events" in treenames:
+            treename = "Events"
+        else:
+            raise RuntimeError("`treename` must be specified. File contains keys: {treenames}")
 
-    def to_df(chunk):
-        for column in list(chunk.keys()):
-            vals = chunk[column]
-            if (vals.dtype == "object") and (column + "_strn" in chunk.keys()):
-                del chunk[column + "_strn"]
-                chunk[column] = awkward.StringArray.fromjagged(vals.astype("uint8"))
-            elif column in categorical_columns:
-                sep = "<!SEP!>"
-                categories = np.array(f[f"categories_{column}"].decode().split(sep))
-                chunk[column] = categories[vals]
-        return pd.DataFrame(chunk)
-
-    df = pd.concat(map(to_df, iterable), ignore_index=True, sort=True)
+    t = f[treename]
+    if columns is None: columns = lambda x: not x.endswith("_varn")
+    arrays = t.arrays(
+            filter_name=columns,
+            entry_start=entry_start,
+            entry_stop=entry_stop,
+        )
+    def jagged_array_to_fletcher(array):
+        if array.ndim >= 2:
+            import fletcher
+            return fletcher.FletcherContinuousArray(awkward1.to_arrow(array))
+        else:
+            return awkward1.to_numpy(array)
+    df = pd.DataFrame({name:jagged_array_to_fletcher(arrays[name]) for name in awkward1.fields(arrays)}, copy=False)
     return df
-
 
 def to_root(
     df, filename, treename="t", chunksize=1e6, compression=uproot3.LZ4(1), progress=False
@@ -71,28 +64,20 @@ def to_root(
     progress: show tqdm progress bar?
     """
     tree_dtypes = dict()
-    string_branches = []
-    category_branches = []
+    jagged_branches = []
     for bname, dtype in df.dtypes.items():
-        if dtype == "object":
-            if type(df.iloc[0][bname]) in [str]:
-                tree_dtypes[bname] = uproot3.newbranch(
-                    np.dtype(">i2"), size=bname + "_strn", compression=uproot3.ZLIB(6)
-                )
-                string_branches.append(bname)
-            else:
-                raise Exception(f"Don't know what kind of branch {bname} is.")
-        elif str(dtype) == "category":
-            tree_dtypes[bname] = np.int8
-            category_branches.append(bname)
+        if "fletcher" in str(dtype):
+            dtype = np.dtype(dtype.arrow_dtype.value_type.to_pandas_dtype())
+            tree_dtypes[bname] = uproot3.newbranch(dtype, size=bname + "_varn", compression=None)
+            jagged_branches.append(bname)
+        elif "object" in str(dtype):
+            raise RuntimeError(f"Don't know how to serialize column {bname} with object dtype.")
         else:
+            dtype = str(dtype).lstrip("u")
             tree_dtypes[bname] = dtype
     with uproot3.recreate(filename, compression=compression) as f:
         t = uproot3.newtree(tree_dtypes)
         f[treename] = t
-        for bname in category_branches:
-            sep = "<!SEP!>"
-            f[f"categories_{bname}"] = sep.join(df[bname].cat.categories)
         chunksize = int(chunksize)
         iterable = range(0, len(df), chunksize)
         if progress:
@@ -101,14 +86,10 @@ def to_root(
             chunk = df.iloc[i : i + chunksize]
             basket = dict()
             for column in chunk.columns:
-                if column in string_branches:
-                    arr = chunk[column].values.astype("str")
-                    jagged = awkward.StringArray.fromnumpy(arr)._content
-                    jagged = jagged[jagged != 0]
-                    basket[column] = jagged
-                    basket[column + "_strn"] = jagged.counts
-                elif column in category_branches:
-                    basket[column] = chunk[column].cat.codes.values.astype(np.int8)
+                if column in jagged_branches:
+                    arr = chunk[column].ak(version=0)
+                    basket[column] = arr
+                    basket[column + "_varn"] = arr.counts.astype("int32")
                 else:
                     basket[column] = chunk[column].values
             f[treename].extend(basket)

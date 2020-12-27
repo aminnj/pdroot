@@ -1,9 +1,10 @@
 import unittest
 
+from pdroot import tree_draw
+
 import numpy as np
 import pandas as pd
 
-from pdroot import tree_draw
 
 
 def make_df(N):
