@@ -40,7 +40,7 @@ df.draw("mass+0.1", "0.1<foo<0.2", bins="200,0,10")
 # 2D with "x:y"
 df.draw("mass:foo+1", "0.1<foo<0.2")
 
-# use numba to jit a specialized function (5x faster than using `df.query`/`df.eval`/`np.histogram`).
+# use numba to jit a specialized function (5x faster wrt df.query/df.eval/np.histogram).
 df.jitdraw("mass+foo+1", "0.1<foo<0.2")
 ```
 
@@ -81,12 +81,12 @@ It's easy to get the awkward array from the fletcher columns:
 ```python
 >>> df["Electron_pt"].ak() # or .ak(1) to get an `awkward1` array instead of the default `awkward0`
 
-<JaggedArray [[] [121.077896] [12.117786] ... [5.583064] [48.620327 35.415432] []] at 0x0001199ba5f8>
+<JaggedArray [[] [121.077896] [12.117786] ... [48.620327 35.415432] []] at 0x0001199ba5f8>
 ```
 
 And provided the four component branches are in the dataframe, one can do
 ```python
 >>> df.p4("Electron").p
 
-<JaggedArray [[] [514.605] [20.646055] ... [19.576536] [48.658344 35.758152] []] at 0x00012ad87358>
+<JaggedArray [[] [514.605] [20.646055] ... [48.658344 35.758152] []] at 0x00012ad87358>
 ```
