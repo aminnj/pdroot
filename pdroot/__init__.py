@@ -10,7 +10,7 @@ from .jitdraw import jitdraw
 
 PandasObject.jitdraw = jitdraw
 
-from .readwrite import read_root, to_root
+from .readwrite import read_root, to_root, ChunkDataFrame
 
 setattr(pandas, "read_root", read_root)
 PandasObject.to_root = to_root

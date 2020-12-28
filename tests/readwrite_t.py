@@ -3,11 +3,10 @@ import unittest
 import numpy as np
 import pandas as pd
 
-from pdroot import to_root, read_root
+from pdroot import to_root, read_root, ChunkDataFrame
 import fletcher
 import awkward0
 import awkward1
-
 
 class ReadWriteTest(unittest.TestCase):
     def test_numerical_columns(self):
@@ -57,6 +56,17 @@ class ReadWriteTest(unittest.TestCase):
             Jet_mass=np.zeros(N)+10., 
             ))
         self.assertTrue((df.p4("Jet").pt == df["Jet_pt"]).all())
+
+    def test_chunkdataframe(self):
+        x = fletcher.FletcherContinuousArray(100*[[1.0, 2.0], [], [3.0, 4.0, 5.0]])
+        y = np.zeros(len(x), dtype=float)
+        df = pd.DataFrame(dict(x=x, y=y))
+        df.to_root("test.root")
+
+        df = ChunkDataFrame(filename="test.root", treename="t", entry_start=0, entry_stop=10)
+        self.assertTrue("x" not in df.columns)
+        self.assertEqual(len(df["x"]), 10)
+        self.assertTrue("x" in df.columns)
 
 if __name__ == "__main__":
     unittest.main()

@@ -3,6 +3,8 @@ import awkward1
 import pandas as pd
 import uproot3_methods
 
+from .readwrite import ChunkDataFrame
+
 @pd.api.extensions.register_series_accessor("ak")
 class AwkwardArrayAccessor:
     def __init__(self, obj):
@@ -29,8 +31,9 @@ class LorentzVectorAccessor:
 
     def __call__(self, which):
         components = [f"{which}_{x}" for x in ["pt", "eta", "phi", "mass"]]
-        missing_columns = set(components)-set(self._obj.columns)
-        if len(missing_columns):
-            raise AttributeError("Missing columns: {}".format(missing_columns))
-        arrays = (awkward1.to_awkward0(self._obj[c].ak(version=1)) for c in components)
+        if not isinstance(self._obj, ChunkDataFrame):
+            missing_columns = set(components)-set(self._obj.columns)
+            if len(missing_columns):
+                raise AttributeError("Missing columns: {}".format(missing_columns))
+        arrays = (self._obj[c].ak(version=0) for c in components)
         return uproot3_methods.TLorentzVectorArray.from_ptetaphim(*arrays)

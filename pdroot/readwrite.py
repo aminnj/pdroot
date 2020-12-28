@@ -12,6 +12,21 @@ warnings.resetwarnings()
 
 warnings.filterwarnings("ignore", message="numpy.ufunc size changed")
 
+import fletcher
+
+def array_to_fletcher_or_numpy(array):
+    if array.ndim >= 2:
+        return fletcher.FletcherContinuousArray(awkward1.to_arrow(array))
+    else:
+        a = array.layout
+        if hasattr(a, "content"):
+            a = a.content
+        return np.array(a, copy=False)
+
+def awkward1_arrays_to_dataframe(arrays):
+    df = pd.DataFrame({name:array_to_fletcher_or_numpy(arrays[name]) for name in awkward1.fields(arrays)}, copy=False)
+    return df
+
 def read_root(
     filename, treename=None, columns=None, entry_start=None,  entry_stop=None,
 ):
@@ -42,13 +57,7 @@ def read_root(
             entry_start=entry_start,
             entry_stop=entry_stop,
         )
-    def jagged_array_to_fletcher(array):
-        if array.ndim >= 2:
-            import fletcher
-            return fletcher.FletcherContinuousArray(awkward1.to_arrow(array))
-        else:
-            return awkward1.to_numpy(array)
-    df = pd.DataFrame({name:jagged_array_to_fletcher(arrays[name]) for name in awkward1.fields(arrays)}, copy=False)
+    df = awkward1_arrays_to_dataframe(arrays)
     return df
 
 def to_root(
@@ -93,3 +102,48 @@ def to_root(
                 else:
                     basket[column] = chunk[column].values
             f[treename].extend(basket)
+
+class ChunkDataFrame(pd.DataFrame):
+    tree = None
+    treename = "Events"
+    filename = None
+    entry_start = None
+    entry_stop = None
+
+    def __init__(self, *args, **kwargs):
+        self.filename = kwargs.pop("filename", None)
+        self.treename = kwargs.pop("treename", "Events")
+        self.entry_start = kwargs.pop("entry_start", None)
+        self.entry_stop = kwargs.pop("entry_stop", None)
+        super(ChunkDataFrame, self).__init__(*args, **kwargs)
+
+    @property
+    def _constructor(self):
+        return ChunkDataFrame
+
+    def _load_tree(self):
+        if self.tree is None:
+            self.tree = uproot4.open(self.filename)[self.treename]
+
+    def _add_column(self, column):
+        self._load_tree()
+        array = self.tree[column].array(entry_start=self.entry_start, entry_stop=self.entry_stop)
+        array = array_to_fletcher_or_numpy(array)
+        self[column] = array
+
+    def _possibly_cache(self, key):
+        is_str = isinstance(key, (str))
+        if is_str:
+            key = [key]
+        else:
+            is_list = isinstance(key, (tuple, list))
+            if not is_list: return
+
+        for column in key:
+            if column in self.columns.values:
+                continue
+            self._add_column(column)
+
+    def __getitem__(self, key):
+        self._possibly_cache(key)
+        return super().__getitem__(key)

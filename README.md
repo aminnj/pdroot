@@ -40,7 +40,8 @@ df.draw("mass+0.1", "0.1<foo<0.2", bins="200,0,10")
 # 2D with "x:y"
 df.draw("mass:foo+1", "0.1<foo<0.2")
 
-# use numba to jit a specialized function (5x faster wrt df.query/df.eval/np.histogram).
+# use numba to jit a specialized function 
+# (can be an order of magnitude faster than df.query/df.eval/np.histogram).
 df.jitdraw("mass+foo+1", "0.1<foo<0.2")
 ```
 
@@ -51,8 +52,11 @@ pdroot.iter_draw("*.root", "mass", "(foo>0.2)", bins="200,0,10")
 
 ### Jagged arrays (e.g., in NanoAOD)
 
-* One can read jagged arrays into DataFrames without converting to list of lists by using zero-copy conversions from `awkward1` to `arrow` 
-and the [fletcher](https://github.com/xhochy/fletcher) pandas ExtensionArray. In other words, this is fast.
+#### Manual reading
+
+One can read jagged arrays into DataFrames without converting to (super slow) lists of lists by using zero-copy conversions from `awkward1` to `arrow` 
+and the [fletcher](https://github.com/xhochy/fletcher) pandas ExtensionArray. In other words, after the arrays are read from the ROOT file,
+making the dataframe is instantaneous.
 
 ```python
 df = pd.read_root("nano.root", columns=["/Electron_(pt|eta|phi|mass)$/", "MET_pt"])
@@ -77,7 +81,7 @@ MET_pt                                          float32
 dtype: object
 ```
 
-It's easy to get the awkward array from the fletcher columns:
+It's easy to get the awkward array from the fletcher columns (also a zero-copy operation):
 ```python
 >>> df["Electron_pt"].ak() # or .ak(1) to get an `awkward1` array instead of the default `awkward0`
 
@@ -90,3 +94,23 @@ And provided the four component branches are in the dataframe, one can do
 
 <JaggedArray [[] [514.605] [20.646055] ... [48.658344 35.758152] []] at 0x00012ad87358>
 ```
+
+#### Lazy chunked reading
+
+`ChunkDataFrame` subclasses `pd.DataFrame` and lazily reads from a chunk of a file (or a whole one).
+```python
+df = pdroot.ChunkDataFrame(filename="nano.root", entry_start=0, entry_stop=100e3)
+
+pt = df["Jet_pt"].ak()
+df["ht"] = pt[pt > 40].sum()
+
+df.head()
+```
+
+|    | Jet_pt                                                                 |      ht |
+|---:|:-----------------------------------------------------------------------|--------:|
+|  0 | [270.75       85.5        39.90625    29.71875    27.453125   20.53125 18.234375   15.4140625] | 356.25  |
+|  1 | [145.75     144.375     64.6875    59.1875    25.875     17.546875]    | 414     |
+|  2 | [343.5       91.5       63.5625    57.15625   29.984375]               | 555.719 |
+|  3 | [192.625    108.125     56.40625   55.75      33.40625   24.140625  21.625     21.3125    17.25      16.75      16.125   ]   | 412.906 |
+|  4 | [105.4375    85.6875    73.        54.5       53.875     40.78125    29.328125  24.484375  23.34375 ]  | 413.281 |
