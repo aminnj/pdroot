@@ -8,6 +8,7 @@ import awkward1
 
 warnings.simplefilter("ignore", category=FutureWarning)
 import uproot3
+import awkward0
 warnings.resetwarnings()
 
 warnings.filterwarnings("ignore", message="numpy.ufunc size changed")
@@ -27,8 +28,28 @@ def awkward1_arrays_to_dataframe(arrays):
     df = pd.DataFrame({name:array_to_fletcher_or_numpy(arrays[name]) for name in awkward1.fields(arrays)}, copy=False)
     return df
 
+def maybe_unmask_jagged_array(array):
+    """
+    Going through Fletcher/parquet can make JaggedArrays
+    end up as BitMaskedArray (even though there are no NaN),
+    so if the mask is dummy, return a regular JaggedArray
+    """
+    if not "BitMaskedArray" in str(type(array)):
+        return array
+
+    mask = array.mask
+    keep_all = np.all(np.unpackbits(mask, count=len(array), bitorder="little"))
+    if not keep_all:
+        return array
+
+    content = array.content.content.content
+    offsets = array.content.offsets
+    return awkward0.JaggedArray.fromoffsets(offsets, content)
+
+
 def read_root(
     filename, treename=None, columns=None, entry_start=None,  entry_stop=None,
+    nthreads=1,
 ):
     """
     Read ROOT file containing one TTree into pandas DataFrame.
@@ -50,18 +71,24 @@ def read_root(
         else:
             raise RuntimeError("`treename` must be specified. File contains keys: {treenames}")
 
+    executor = None
+    if nthreads > 1:
+        import concurrent.futures
+        executor = concurrent.futures.ThreadPoolExecutor(nthreads)
+
     t = f[treename]
     if columns is None: columns = lambda x: not x.endswith("_varn")
     arrays = t.arrays(
             filter_name=columns,
             entry_start=entry_start,
             entry_stop=entry_stop,
+            decompression_executor = executor,
         )
     df = awkward1_arrays_to_dataframe(arrays)
     return df
 
 def to_root(
-    df, filename, treename="t", chunksize=1e6, compression=uproot3.LZ4(1), progress=False
+    df, filename, treename="t", chunksize=10e3, compression=uproot3.ZLIB(1), compression_jagged=uproot3.ZLIB(1), progress=False
 ):
     """
     Writes ROOT file containing one TTree with the input pandas DataFrame.
@@ -77,7 +104,7 @@ def to_root(
     for bname, dtype in df.dtypes.items():
         if "fletcher" in str(dtype):
             dtype = np.dtype(dtype.arrow_dtype.value_type.to_pandas_dtype())
-            tree_dtypes[bname] = uproot3.newbranch(dtype, size=bname + "_varn", compression=None)
+            tree_dtypes[bname] = uproot3.newbranch(dtype, size=bname + "_varn", compression=compression_jagged)
             jagged_branches.append(bname)
         elif "object" in str(dtype):
             raise RuntimeError(f"Don't know how to serialize column {bname} with object dtype.")
@@ -97,6 +124,10 @@ def to_root(
             for column in chunk.columns:
                 if column in jagged_branches:
                     arr = chunk[column].ak(version=0)
+                    arr = maybe_unmask_jagged_array(arr)
+                    # profiling says 30% of the time is spent checking if jagged __getitem__ is given a string
+                    # this is not needed for writing out TTree branches, so free speedup.
+                    arr._util_isstringslice = lambda x: False
                     basket[column] = arr
                     basket[column + "_varn"] = arr.counts.astype("int32")
                 else:
@@ -104,11 +135,13 @@ def to_root(
             f[treename].extend(basket)
 
 class ChunkDataFrame(pd.DataFrame):
-    tree = None
-    treename = "Events"
     filename = None
+    treename = None
     entry_start = None
     entry_stop = None
+    tree = None
+
+    _metadata = ["filename", "treename", "entry_start", "entry_stop", "tree"]
 
     def __init__(self, *args, **kwargs):
         self.filename = kwargs.pop("filename", None)
