@@ -29,6 +29,9 @@ def get_executable_str_and_vars_flat(varexp, cut):
     vars_comma_sep = ",".join(vars_all)
     vars_first = vars_all[0]
 
+    if not cut_suffix:
+        cut_suffix = "True"
+
     template = f"""
 @numba.jit(nopython=True, nogil=True)
 def temp_func({vars_comma_sep}, bins):
@@ -67,7 +70,9 @@ def get_jitfunc_and_vars_flat(varexp, cut):
     return func, vars_all
 
 
-def jitdraw(df, varexp, cut, bins=np.linspace(0, 1, 10)):
+def jitdraw(df, varexp, cut="", bins="50,0,100"):
     f, vars_all = get_jitfunc_and_vars_flat(varexp, cut)
+    # take advantage of string parsing for bins, if needed
+    bins = Hist1D([], bins=bins).edges
     to_eval = "f(" + ", ".join([f'df["{v}"].values' for v in vars_all]) + ", bins" + ")"
     return Hist1D.from_bincounts(eval(to_eval), bins)
