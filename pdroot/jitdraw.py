@@ -46,6 +46,7 @@ def temp_func({vars_comma_sep}, bins):
     """
     return template, vars_all
 
+
 def string_to_function(s):
     """
     takes string containing function def via `def`
@@ -58,14 +59,15 @@ def string_to_function(s):
     exec(s)
     return locals()[funcname]
 
+
 @functools.lru_cache(maxsize=128)
 def get_jitfunc_and_vars_flat(varexp, cut):
     s, vars_all = get_executable_str_and_vars_flat(varexp, cut)
     func = string_to_function(s)
     return func, vars_all
 
+
 def jitdraw(df, varexp, cut, bins=np.linspace(0, 1, 10)):
     f, vars_all = get_jitfunc_and_vars_flat(varexp, cut)
     to_eval = "f(" + ", ".join([f'df["{v}"].values' for v in vars_all]) + ", bins" + ")"
     return Hist1D.from_bincounts(eval(to_eval), bins)
-

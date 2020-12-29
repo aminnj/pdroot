@@ -20,7 +20,7 @@ def variables_in_expr(expr):
             continue
         if ix < len(g) - 1 and g[ix + 1][1] in [".", "("]:
             continue
-        if tokval in ["and", "or","abs","max","min","sum"]:
+        if tokval in ["and", "or", "abs", "max", "min", "sum"]:
             continue
         varnames.append(tokval)
     varnames = list(set(varnames))
@@ -57,11 +57,12 @@ def sandwich_vars_in_expr(expr, prefix="", suffix=""):
     varnames = []
     for ix, x in enumerate(g):
         toknum, tokval = x[:2]
-        if toknum in [ENCODING]: continue
+        if toknum in [ENCODING]:
+            continue
         if toknum != NAME:
             buff += tokval
             continue
-        if (tokval in ["and", "or","abs","max","min","sum"]):
+        if tokval in ["and", "or", "abs", "max", "min", "sum"]:
             buff += f" {tokval} "
             continue
         else:

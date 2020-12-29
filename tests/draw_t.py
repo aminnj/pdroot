@@ -6,7 +6,6 @@ import numpy as np
 import pandas as pd
 
 
-
 def make_df(N):
     np.random.seed(42)
     return pd.DataFrame(

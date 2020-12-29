@@ -86,4 +86,3 @@ def iter_draw(
     if progress:
         print(f"Processed {nevents} in {t1-t0:.2f}s ({1e-6*nevents/(t1-t0):.2f}MHz)")
     return h
-

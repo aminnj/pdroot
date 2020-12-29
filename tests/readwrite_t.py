@@ -8,6 +8,7 @@ import fletcher
 import awkward0
 import awkward1
 
+
 class ReadWriteTest(unittest.TestCase):
     def test_numerical_columns(self):
         N = 1000
@@ -23,13 +24,11 @@ class ReadWriteTest(unittest.TestCase):
         df2 = read_root("test.root")
         self.assertTrue(np.allclose(df1, df2))
 
-
     def test_pandas_injection(self):
         df1 = pd.DataFrame(dict(b1=np.random.random(100),))
         df1.to_root("test.root")
         df2 = pd.read_root("test.root")
         self.assertTrue(np.allclose(df1, df2))
-
 
     def test_jagged(self):
         x_in = fletcher.FletcherContinuousArray([[1.0, 2.0], [], [3.0, 4.0, 5.0]])
@@ -49,24 +48,29 @@ class ReadWriteTest(unittest.TestCase):
 
     def test_p4_accessor(self):
         N = 10
-        df = pd.DataFrame(dict(
-            Jet_pt=np.zeros(N)+50., 
-            Jet_eta=np.zeros(N)+1.1, 
-            Jet_phi=np.zeros(N)-1.2, 
-            Jet_mass=np.zeros(N)+10., 
-            ))
+        df = pd.DataFrame(
+            dict(
+                Jet_pt=np.zeros(N) + 50.0,
+                Jet_eta=np.zeros(N) + 1.1,
+                Jet_phi=np.zeros(N) - 1.2,
+                Jet_mass=np.zeros(N) + 10.0,
+            )
+        )
         self.assertTrue((df.p4("Jet").pt == df["Jet_pt"]).all())
 
     def test_chunkdataframe(self):
-        x = fletcher.FletcherContinuousArray(100*[[1.0, 2.0], [], [3.0, 4.0, 5.0]])
+        x = fletcher.FletcherContinuousArray(100 * [[1.0, 2.0], [], [3.0, 4.0, 5.0]])
         y = np.zeros(len(x), dtype=float)
         df = pd.DataFrame(dict(x=x, y=y))
         df.to_root("test.root")
 
-        df = ChunkDataFrame(filename="test.root", treename="t", entry_start=0, entry_stop=10)
+        df = ChunkDataFrame(
+            filename="test.root", treename="t", entry_start=0, entry_stop=10
+        )
         self.assertTrue("x" not in df.columns)
         self.assertEqual(len(df["x"]), 10)
         self.assertTrue("x" in df.columns)
+
 
 if __name__ == "__main__":
     unittest.main()
