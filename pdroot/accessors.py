@@ -2,6 +2,7 @@ import awkward0
 import awkward1
 import pandas as pd
 import uproot3_methods
+import numpy as np
 
 from .readwrite import ChunkDataFrame
 
@@ -16,6 +17,13 @@ class AwkwardArrayAccessor:
         if "fletcher" not in str(values.dtype).lower():
             return awkward1.from_numpy(values)
         array_arrow = values.data
+
+        if array_arrow.offset != 0:
+            # this means we have done a slice, and from_arrow will
+            # not see the slice, instead returning the beginning of the
+            # array/buffer, so we explicitly do a .take() to fix it
+            array_arrow = array_arrow.take(np.arange(len(array_arrow)))
+
         if version == 0:
             array = awkward0.fromarrow(array_arrow)
         elif version == 1:
