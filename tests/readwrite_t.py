@@ -33,7 +33,7 @@ class ReadWriteTest(unittest.TestCase):
     def test_jagged(self):
         x_in = fletcher.FletcherContinuousArray([[1.0, 2.0], [], [3.0, 4.0, 5.0]])
         df = pd.DataFrame(dict(x=x_in))
-        df.to_root("test.root")
+        df.to_root("test.root", compression_jagged=None)
         x_out = pd.read_root("test.root")["x"].values
         self.assertEqual(x_in.data, x_out.data)
 
@@ -41,7 +41,7 @@ class ReadWriteTest(unittest.TestCase):
         x = fletcher.FletcherContinuousArray([[1.0, 2.0], [], [3.0, 4.0, 5.0]])
         y = np.zeros(len(x), dtype=float)
         df = pd.DataFrame(dict(x=x, y=y))
-        df.to_root("test.root")
+        df.to_root("test.root", compression_jagged=None)
         df = pd.read_root("test.root")
         self.assertEqual(df["x"].ak(0).sum().tolist(), [3.0, 0.0, 12.0])
         self.assertEqual(awkward1.sum(df["x"], axis=-1).tolist(), [3.0, 0.0, 12.0])
@@ -62,7 +62,7 @@ class ReadWriteTest(unittest.TestCase):
         x = fletcher.FletcherContinuousArray(100 * [[1.0, 2.0], [], [3.0, 4.0, 5.0]])
         y = np.zeros(len(x), dtype=float)
         df = pd.DataFrame(dict(x=x, y=y))
-        df.to_root("test.root")
+        df.to_root("test.root", compression_jagged=None)
 
         df = ChunkDataFrame(
             filename="test.root", treename="t", entry_start=0, entry_stop=10

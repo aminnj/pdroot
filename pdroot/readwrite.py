@@ -28,10 +28,12 @@ def array_to_fletcher_or_numpy(array):
 
 
 def awkward1_arrays_to_dataframe(arrays):
+    fields = awkward1.fields(arrays)
+    fields = filter(lambda x: not x.endswith("_varn"), fields)
     df = pd.DataFrame(
         {
             name: array_to_fletcher_or_numpy(arrays[name])
-            for name in awkward1.fields(arrays)
+            for name in fields
         },
         copy=False,
     )
@@ -56,6 +58,15 @@ def maybe_unmask_jagged_array(array):
     offsets = array.content.offsets
     return awkward0.JaggedArray.fromoffsets(offsets, content)
 
+def find_tree_name(f):
+    treename = None
+    treenames = [n.rsplit(";", 1)[0] for n in f.keys()]
+    if len(treenames) == 1:
+        treename = treenames[0]
+    elif "Events" in treenames:
+        treename = "Events"
+    return treename
+
 
 def read_root(
     filename,
@@ -63,7 +74,7 @@ def read_root(
     columns=None,
     entry_start=None,
     entry_stop=None,
-    nthreads=1,
+    nthreads=4,
 ):
     """
     Read ROOT file containing one TTree into pandas DataFrame.
@@ -77,15 +88,11 @@ def read_root(
     """
     f = uproot4.open(filename)
     if treename is None:
-        treenames = [n.rsplit(";", 1)[0] for n in f.keys()]
-        if len(treenames) == 1:
-            treename = treenames[0]
-        elif "Events" in treenames:
-            treename = "Events"
-        else:
-            raise RuntimeError(
-                "`treename` must be specified. File contains keys: {treenames}"
-            )
+        treename = find_tree_name(f)
+    if treename is None:
+        raise RuntimeError(
+            "`treename` must be specified. File contains keys: {treenames}"
+        )
 
     executor = None
     if nthreads > 1:
@@ -94,8 +101,6 @@ def read_root(
         executor = concurrent.futures.ThreadPoolExecutor(nthreads)
 
     t = f[treename]
-    if columns is None:
-        columns = lambda x: not x.endswith("_varn")
     arrays = t.arrays(
         filter_name=columns,
         entry_start=entry_start,
@@ -103,6 +108,7 @@ def read_root(
         decompression_executor=executor,
     )
     df = awkward1_arrays_to_dataframe(arrays)
+    df.columns
     return df
 
 
@@ -112,7 +118,7 @@ def to_root(
     treename="t",
     chunksize=20e3,
     compression=uproot3.ZLIB(1),
-    compression_jagged=None,
+    compression_jagged=uproot3.ZLIB(1),
     progress=False,
 ):
     """
