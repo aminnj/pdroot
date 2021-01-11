@@ -35,7 +35,9 @@ class ReadWriteTest(unittest.TestCase):
         df = pd.DataFrame(dict(x=x_in))
         df.to_root("test.root", compression_jagged=None)
         x_out = pd.read_root("test.root")["x"].values
-        self.assertEqual(x_in.data, x_out.data)
+        v_in = list(map(list, x_in.data))
+        v_out = list(map(list, x_out.data))
+        self.assertEqual(v_in, v_out)
 
     def test_awkward_accessor(self):
         x = fletcher.FletcherContinuousArray([[1.0, 2.0], [], [3.0, 4.0, 5.0]])

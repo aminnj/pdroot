@@ -19,16 +19,16 @@ def pandas_series_to_awkward(series, version=0):
 
     array_arrow = values.data
 
-    if array_arrow.offset != 0:
-        # this means we have done a slice, and from_arrow will
-        # not see the slice, instead returning the beginning of the
-        # array/buffer, so we explicitly do a .take() to fix it
-        array_arrow = array_arrow.take(np.arange(len(array_arrow)))
-        import warnings
+    # if array_arrow.offset != 0:
+    #     # this means we have done a slice, and from_arrow will
+    #     # not see the slice, instead returning the beginning of the
+    #     # array/buffer, so we explicitly do a .take() to fix it
+    #     array_arrow = array_arrow.take(np.arange(len(array_arrow)))
+    #     import warnings
 
-        warnings.warn(
-            "Made a copy to handle slicing an Arrow array with awkward array. This code can be removed when https://github.com/scikit-hep/awkward-1.0/pull/625 is merged."
-        )
+    #     warnings.warn(
+    #         "Made a copy to handle slicing an Arrow array with awkward array. This code can be removed when https://github.com/scikit-hep/awkward-1.0/pull/625 is merged."
+    #     )
 
     if version == 0:
         array = awkward0.fromarrow(array_arrow)
