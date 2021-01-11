@@ -35,14 +35,14 @@ For those familiar with ROOT's `TTree::Draw()`, you can compute a histogram dire
 All kwargs after first two required args are passed to a [yahist](https://github.com/aminnj/yahist) Hist1D().
 ```python
 # expression string and a query string
-df.draw("mass+0.1", "0.1<foo<0.2", bins="200,0,10")
+df.draw("mass+0.1", "foo>0.2 and foo<0.1", bins="200,0,10")
 
 # 2D with "x:y"
-df.draw("mass:foo+1", "0.1<foo<0.2")
+df.draw("mass:foo+1", "foo>0.2 and foo<0.1")
 
 # use numba to jit a specialized function 
 # (can be an order of magnitude faster than df.query/df.eval/np.histogram).
-df.jitdraw("mass+foo+1", "0.1<foo<0.2")
+df.jitdraw("mass+foo+1", "foo>0.2 and foo<0.1")
 ```
 
 Read root files and make a histogram in one pass (chunked reading and only branches that are needed)
@@ -114,3 +114,24 @@ df.head()
 |  2 | [343.5       91.5       63.5625    57.15625   29.984375]               | 555.719 |
 |  3 | [192.625    108.125     56.40625   55.75      33.40625   24.140625  21.625     21.3125    17.25      16.75      16.125   ]   | 412.906 |
 |  4 | [105.4375    85.6875    73.        54.5       53.875     40.78125    29.328125  24.484375  23.34375 ]  | 413.281 |
+
+#### Drawing
+
+Drawing from a DataFrame supports jagged columns, so the following are valid statements:
+```python
+# supports reduction operators (ROOT's Length$ -> length, etc)
+df.draw("sum(Jet_pt>10)", "MET_pt>40", bins="5,-0.5,4.5")
+df.draw("max(abs(Jet_eta))")
+df.draw("min(Jet_pt)")
+df.draw("mean(Jet_pt)")
+df.draw("length(Jet_pt)")
+
+# combine event-level and object-level selection
+df.draw("Jet_pt", "abs(Jet_eta) > 1.0 and MET_pt > 10")
+
+# 2D
+df.draw("Jet_pt:Jet_eta", "MET_pt > 40.")
+
+# combine reduction operators with fancy indexing
+df.draw("sum(Jet_pt[abs(Jet_eta)<2.0])", bins="100,0,100")
+```

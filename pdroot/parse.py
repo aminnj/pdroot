@@ -1,3 +1,5 @@
+import ast
+import astor
 from io import BytesIO
 from tokenize import tokenize, NAME, ENCODING
 
@@ -20,7 +22,7 @@ def variables_in_expr(expr):
             continue
         if ix < len(g) - 1 and g[ix + 1][1] in [".", "("]:
             continue
-        if tokval in ["and", "or", "abs", "max", "min", "sum"]:
+        if tokval in ["and", "or", "abs", "max", "min", "sum", "mean"]:
             continue
         varnames.append(tokval)
     varnames = list(set(varnames))
@@ -69,3 +71,38 @@ def sandwich_vars_in_expr(expr, prefix="", suffix=""):
             buff += f"{prefix}{tokval}{suffix}"
         varnames.append(tokval)
     return buff, varnames
+
+
+class Transformer(ast.NodeTransformer):
+    def visit_And(self, node):
+        ast.NodeVisitor.generic_visit(self, node)
+        return ast.BitAnd()
+
+    def visit_Or(self, node):
+        ast.NodeVisitor.generic_visit(self, node)
+        return ast.BitOr()
+
+    def visit_Call(self, node):
+        if hasattr(node.func, "id"):
+            name = node.func.id
+            if name in ["min", "max", "sum", "mean", "length"]:
+                if name == "length":
+                    node.func.id = "ak.count"
+                else:
+                    node.func.id = "ak." + node.func.id
+                node.keywords.append(ast.keyword("axis", ast.Num(-1)))
+        ast.NodeVisitor.generic_visit(self, node)
+        return node
+
+
+def to_ak_expr(expr):
+    """
+    turns 
+        expr = "sum(Jet_pt[abs(Jet_eta)>4.])"
+    into 
+        expr = "ak.sum(Jet_pt[abs(Jet_eta) > 4.0], axis=-1)"
+    """
+    parsed = ast.parse(expr)
+    Transformer().visit(parsed)
+    source = astor.to_source(parsed).strip()
+    return source

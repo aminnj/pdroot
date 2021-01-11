@@ -8,6 +8,7 @@ import numba
 
 from .readwrite import ChunkDataFrame
 
+
 def pandas_series_to_awkward(series, version=0):
     values = series.values
     if "fletcher" not in str(values.dtype).lower():
@@ -49,6 +50,7 @@ class AwkwardArrayAccessor:
         # version=0 returns an awkward0 array, version1 returns awkward1
         return pandas_series_to_awkward(self._obj, version=version)
 
+
 @pd.api.extensions.register_dataframe_accessor("ak")
 class AwkwardArraysAccessor:
     def __init__(self, pandas_obj):
@@ -57,7 +59,9 @@ class AwkwardArraysAccessor:
     def __call__(self, version=0):
         df = self._obj
         if version == 0:
-            return awkward0.Table(dict((c,df[c].ak(version=version)) for c in df.columns))
+            return awkward0.Table(
+                dict((c, df[c].ak(version=version)) for c in df.columns)
+            )
         elif version == 1:
             return awkward1.from_arrow(pyarrow.Table.from_pandas(df))
         else:

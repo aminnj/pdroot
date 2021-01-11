@@ -31,11 +31,7 @@ def awkward1_arrays_to_dataframe(arrays):
     fields = awkward1.fields(arrays)
     fields = filter(lambda x: not x.endswith("_varn"), fields)
     df = pd.DataFrame(
-        {
-            name: array_to_fletcher_or_numpy(arrays[name])
-            for name in fields
-        },
-        copy=False,
+        {name: array_to_fletcher_or_numpy(arrays[name]) for name in fields}, copy=False,
     )
     return df
 
@@ -57,6 +53,7 @@ def maybe_unmask_jagged_array(array):
     content = array.content.content.content
     offsets = array.content.offsets
     return awkward0.JaggedArray.fromoffsets(offsets, content)
+
 
 def find_tree_name(f):
     treename = None
