@@ -148,7 +148,7 @@ class Transformer(ast.NodeTransformer):
                 ),
                 ctx=ast.Load(),
             )
-            self.generic_visit(node)
+        self.generic_visit(node)
         return node
 
 

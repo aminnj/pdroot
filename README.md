@@ -5,7 +5,7 @@ pip install pdroot
 
 ## Usage
 
-This augments `pandas` making it easier to deal with ROOT files and make histograms:
+This import augments `pandas` making it easier to deal with ROOT files and make histograms:
 ```python
 import pdroot
 ```
@@ -26,7 +26,7 @@ df = pd.DataFrame(dict(
 df.to_root("test.root")
 
 # read ROOT files and optionally specify certain columns and/or a range of rows.
-df = pd.read_root("test.root", columns=["mass", "foo"], entry_stop=1000)
+df = pd.read_root("test.root", columns=["mass", "foo"], entry_start=0, entry_stop=1000)
 ```
 
 ### Histogram drawing from DataFrames
@@ -88,11 +88,37 @@ It's easy to get the awkward array from the fletcher columns (also a zero-copy o
 <JaggedArray [[] [121.077896] [12.117786] ... [48.620327 35.415432] []] at 0x0001199ba5f8>
 ```
 
-And provided the four component branches are in the dataframe, one can do
+And provided four component branches (`*_{pt,eta,phi,mass}`) are in the dataframe, one can do
 ```python
 >>> df.p4("Electron").p
 
 <JaggedArray [[] [514.605] [20.646055] ... [48.658344 35.758152] []] at 0x00012ad87358>
+```
+
+#### Drawing
+
+Drawing from a DataFrame supports jagged columns, so the following are valid statements:
+```python
+# supports reduction operators (ROOT's Length$ -> length, etc)
+df.draw("length(Jet_pt)")
+df.draw("sum(Jet_pt>10)", "MET_pt>40", bins="5,-0.5,4.5")
+df.draw("max(abs(Jet_eta))")
+df.draw("mean(Jet_pt)")
+
+# combine event-level and object-level selection
+df.draw("Jet_pt", "abs(Jet_eta) > 1.0 and MET_pt > 10")
+
+# 2D
+df.draw("Jet_pt:Jet_eta", "MET_pt > 40.")
+
+# indexing; imagine you are operating row-by-row, so Jet_pt[0], not Jet_pt[:,0]
+df.draw("Jet_pt[0]:Jet_eta[0]", "MET_pt > 10")
+
+# combine reduction operators with fancy indexing
+df.draw("sum(Jet_pt[abs(Jet_eta)<2.0])", bins="100,0,100")
+
+# use the underlying array before a histogram is created
+df["ht"] = df.draw_to_array("sum(Jet_pt[Jet_pt>40])")
 ```
 
 #### Lazy chunked reading
@@ -115,26 +141,3 @@ df.head()
 |  3 | [192.625    108.125     56.40625   55.75      33.40625   24.140625  21.625     21.3125    17.25      16.75      16.125   ]   | 412.906 |
 |  4 | [105.4375    85.6875    73.        54.5       53.875     40.78125    29.328125  24.484375  23.34375 ]  | 413.281 |
 
-#### Drawing
-
-Drawing from a DataFrame supports jagged columns, so the following are valid statements:
-```python
-# supports reduction operators (ROOT's Length$ -> length, etc)
-df.draw("sum(Jet_pt>10)", "MET_pt>40", bins="5,-0.5,4.5")
-df.draw("max(abs(Jet_eta))")
-df.draw("min(Jet_pt)")
-df.draw("mean(Jet_pt)")
-df.draw("length(Jet_pt)")
-
-# combine event-level and object-level selection
-df.draw("Jet_pt", "abs(Jet_eta) > 1.0 and MET_pt > 10")
-
-# 2D
-df.draw("Jet_pt:Jet_eta", "MET_pt > 40.")
-
-# indexing
-df.draw("Jet_pt[0]:Jet_eta[0]", "MET_pt > 10")
-
-# combine reduction operators with fancy indexing
-df.draw("sum(Jet_pt[abs(Jet_eta)<2.0])", bins="100,0,100")
-```

@@ -163,6 +163,8 @@ class DrawJaggedTest(unittest.TestCase):
     def test_slicing(self):
         self.drawclose("sum(Jet_pt[:2])", "", [42 + 15, 0, 11.5, 50 + 5])
         self.drawclose("sum(Jet_pt[2:3])", "MET_pt > 40", [10.5, 0.0])
+        self.drawclose("sum(Jet_pt[(Jet_pt>40) and abs(Jet_eta)<2.4])", "", [42, 0, 0, 50])
+        self.drawclose("sum(Jet_pt[(Jet_pt>40) and abs(Jet_eta)<2.4])", "MET_pt > 40", [42, 0])
 
 
 if __name__ == "__main__":

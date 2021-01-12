@@ -2,9 +2,10 @@ import pandas
 from pandas.core.base import PandasObject
 
 
-from .draw import tree_draw, iter_draw
+from .draw import tree_draw, tree_draw_to_array, iter_draw
 
 PandasObject.draw = tree_draw
+PandasObject.draw_to_array = tree_draw_to_array
 
 from .jitdraw import jitdraw
 
