@@ -14,13 +14,23 @@ warnings.resetwarnings()
 
 from yahist import Hist1D, Hist2D
 
-from .query import hacky_query_eval
 from .parse import variables_in_expr, nops_in_expr, to_ak_expr
-
 
 def tree_draw(df, varexp, sel="", **kwargs):
     """
     1d and 2d drawing function that supports jagged columns
+    returns hist
+    """
+    array = tree_draw_to_array(df, varexp, sel)
+    if np.ndim(array) == 1:
+        return Hist1D(array, **kwargs)
+    elif np.ndim(array) == 2:
+        return Hist2D(array, **kwargs)
+
+def tree_draw_to_array(df, varexp, sel=""):
+    """
+    1d and 2d drawing function that supports jagged columns
+    returns array
     """
     colnames = variables_in_expr(f"{varexp}${sel}")
     for colname in colnames:
@@ -41,58 +51,44 @@ def tree_draw(df, varexp, sel="", **kwargs):
             vals = awkward1.flatten(vals)
 
         vals = awkward1.to_numpy(vals)
+        dims.append(vals)
 
-        # make a concrete array if there is a mask
+    def has_mask(vals):
         if isinstance(vals, np.ma.masked_array) or (
             hasattr(vals, "layout")
             and isinstance(vals.layout, awkward1.layout.ByteMaskedArray)
         ):
-            mask = vals.mask
-            if np.ndim(mask) == 0:
-                vals = vals.data
-            else:
-                vals = vals.data[~vals.mask]
-
-        dims.append(vals)
+            return True
+        return False
 
     if len(dims) == 1:
-        return Hist1D(dims[0], **kwargs)
-    else:
-        return Hist2D(np.c_[dims[0], dims[1]], **kwargs)
-    return dims
 
+        vals = dims[0]
+        if has_mask(vals):
+            mask = vals.mask
+            if np.ndim(mask) != 0:
+                vals = vals.data[~mask]
+            else:
+                vals = vals.data
 
-def tree_draw_old(df, varexp, sel="", **kwargs):
-    """
-    Does not support jagged columns
-    """
-    from tokenize import tokenize, NAME, OP
-    from io import BytesIO
-
-    fast = nops_in_expr(f"{varexp}${sel}") < 5
-    twodim = ":" in varexp
-    if fast and not twodim:
-        raw = hacky_query_eval(df, varexp, sel)
-        # performance hit for float16's. copy to float32 first.
-        if raw.dtype in ["float16"]:
-            vals = raw.astype("float32")
+    # could be simplified
+    # if one of the dimensions has a mask, we want to apply the OR
+    # of the two to make sure their lengths will be equal
+    if len(dims) == 2:
+        x, y = dims
+        if (has_mask(x) and np.ndim(x.mask) != 0) or (has_mask(y) and np.ndim(y.mask) != 0):
+            mask = x.mask | y.mask
+            x = x.data[~mask]
+            y = y.data[~mask]
         else:
-            vals = raw
-        if "weights" in kwargs:
-            raise Exception("`weights` kwarg not supported for `fast=True` (yet?)")
-        return Hist1D(vals, **kwargs)
-    if not sel:
-        mask = slice(None)
-    else:
-        mask = df.eval(sel)
-    if twodim:
-        assert varexp.count(":") == 1
-        varexp1, varexp2 = varexp.split(":")
-        vals = np.c_[df[mask].eval(varexp1), df[mask].eval(varexp2)]
-        return Hist2D(vals, **kwargs)
-    else:
-        vals = df[mask].eval(varexp)
-        return Hist1D(vals, **kwargs)
+            if has_mask(x):
+                x = x.data
+            if has_mask(y):
+                y = y.data
+
+        vals = np.c_[x, y]
+
+    return vals
 
 
 def iter_draw(

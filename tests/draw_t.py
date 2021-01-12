@@ -2,12 +2,12 @@ import unittest
 
 from pdroot import tree_draw
 from pdroot.readwrite import awkward1_arrays_to_dataframe
+from pdroot.draw import tree_draw_to_array
 
 import numpy as np
 import pandas as pd
 
 import awkward1
-
 
 class FlatDrawTest(unittest.TestCase):
     def setUp(self):
@@ -63,6 +63,14 @@ class FlatDrawTest(unittest.TestCase):
 
 
 class DrawJaggedTest(unittest.TestCase):
+
+    def drawclose(self, varexp, sel, y):
+        x = tree_draw_to_array(self.df, varexp, sel)
+        x = np.array(x)
+        y = np.array(y)
+        self.assertEqual(x.shape, y.shape)
+        self.assertTrue(np.allclose(x, y))
+
     def setUp(self):
         a = awkward1.Array(
             dict(
@@ -73,62 +81,65 @@ class DrawJaggedTest(unittest.TestCase):
         )
         self.df = awkward1_arrays_to_dataframe(a)
 
-    def test_broadcasting(self):
+    def test_draw_to_hist1d(self):
         df = self.df
-        # check that shapes/broadcasting gets the right number of entries
         self.assertEqual(df.draw("Jet_pt").integral, 6)
         self.assertEqual(df.draw("MET_pt").integral, 4)
-        self.assertEqual(df.draw("MET_pt", "MET_pt > 40.").integral, 2)
-        self.assertEqual(df.draw("Jet_pt", "MET_pt > 40.").integral, 4)
-        self.assertEqual(df.draw("Jet_pt", "abs(Jet_eta) > 1.0").integral, 3)
-        self.assertEqual(
-            df.draw("Jet_pt", "abs(Jet_eta) > 1.0 and MET_pt > 10").integral, 2
-        )
 
-    def test_2d(self):
+    def test_draw_to_hist2d(self):
         df = self.df
         h = df.draw("Jet_pt:Jet_eta", "MET_pt > 40.")
         self.assertEqual(np.ndim(h.counts), 2)
         self.assertEqual(h.integral, 4)
 
-    def test_correct_value_picked_out(self):
-        df = self.df
-        h = df.draw("Jet_eta", "Jet_pt > 40 and MET_pt > 40", bins="100,-5,5")
-        self.assertEqual(h.lookup(-2.2), 1.0)
+    def test_broadcasting(self):
+        self.drawclose("Jet_pt", "", [42.0, 15.0, 10.5, 11.5, 50.0, 5.0])
+        self.drawclose("MET_pt", "", [46.5, 30.0, 82.0, 8.9])
+        self.drawclose("Jet_pt", "Jet_pt > 40", [42.0, 50.0])
+        self.drawclose("MET_pt", "MET_pt > 40", [46.5, 82.0])
+        self.drawclose("Jet_pt", "MET_pt > 40", [42, 15, 10.5, 11.5])
+        self.drawclose("Jet_pt", "abs(Jet_eta) > 1 and MET_pt > 10", [42.0, 11.5])
 
-        h = df.draw("Jet_eta + 1", "Jet_pt > 40 and MET_pt > 40", bins="100,-5,5")
-        self.assertEqual(h.lookup(-1.2), 1.0)
+    def test_2d(self):
+        self.drawclose("Jet_pt:Jet_eta", "MET_pt > 40.", [[42,-2.2],[15,0.4],[10.5,0.5],[11.5,1.5]])
+
+    def test_correct_value_picked_out(self):
+        self.drawclose("Jet_eta", "Jet_pt > 40 and MET_pt > 40", [-2.2])
+        self.drawclose("Jet_eta + 1", "Jet_pt > 40 and MET_pt > 40", [-1.2])
 
     def test_reductions(self):
-        df = self.df
-        # empty rows are skipped from max/min/mean
-        self.assertEqual(df.draw("max(abs(Jet_eta))").integral, 3)
-        self.assertEqual(df.draw("min(Jet_pt)").integral, 3)
-        self.assertEqual(df.draw("mean(Jet_pt)").integral, 3)
-        self.assertEqual(df.draw("length(Jet_pt)").integral, 4)
-        self.assertEqual(df.draw("sum(Jet_pt)").integral, 4)
+        self.drawclose("max(abs(Jet_eta))", "", [2.2, 1.5, 3.0])
+        self.drawclose("max(abs(Jet_eta))", "MET_pt > 80", [1.5])
+        self.drawclose("min(Jet_pt)", "", [10.5, 11.5, 5.0])
+        self.drawclose("mean(Jet_pt)", "", [1./3*(42+15+10.5), 11.5, 0.5*(50+5)])
+        self.drawclose("length(Jet_pt)", "", [3, 0, 1, 2])
+        self.drawclose("length(Jet_pt)", "MET_pt < 10", [2])
+        self.drawclose("sum(Jet_pt)", "MET_pt < 10", [50+5])
 
     def test_indexing(self):
-        df = self.df
-        self.assertEqual(df.draw("Jet_pt[Jet_pt>25]").integral, 2)
+        self.drawclose("Jet_pt[Jet_pt>25]", "", [42, 50])
+        self.drawclose("Jet_pt[2]", "", [10.5])
+        self.drawclose("Jet_pt[0]:Jet_pt[1]", "", [[42,15], [50,5]])
+        self.drawclose("Jet_pt[0]:Jet_pt[1]", "MET_pt > 40", [[42,15]])
 
     def test_indexing_reduction(self):
-        df = self.df
-        h = df.draw("sum(Jet_pt[abs(Jet_eta)<2.0])", bins="100,0,100")
-        for v in [0.0, 15.0 + 10.5, 11.5, 50.0]:
-            self.assertEqual(h.lookup(v), 1.0)
+        self.drawclose("sum(Jet_pt[abs(Jet_eta)<2.0])", "", [15+10.5, 0.0, 11.5, 50.])
 
     def test_counting(self):
-        df = self.df
-        h = df.draw("sum(Jet_pt>10)", "MET_pt>40", bins="5,-0.5,4.5")
-        self.assertEqual(h.lookup(1), 1.0)
-        self.assertEqual(h.lookup(3), 1.0)
+        self.drawclose("sum(Jet_pt>10)", "MET_pt>40", [3, 1])
 
     def test_mathematical_operations(self):
-        df = self.df
-        h = df.draw("np.exp(sum(Jet_pt>10))", "MET_pt>40", bins="100,0,100")
-        self.assertEqual(h.lookup(np.exp(1)), 1.0)
-        self.assertEqual(h.lookup(np.exp(3)), 1.0)
+        self.drawclose("np.exp(sum(Jet_pt>10))", "MET_pt>40", [np.exp(3), np.exp(1)])
+
+    def test_comparisons(self):
+        self.drawclose("Jet_pt", "(14. < Jet_pt < 16.)", [15])
+        self.drawclose("Jet_pt", "(14. < Jet_pt) and (Jet_pt < 16.)", [15])
+        self.drawclose("Jet_pt", "(14. < Jet_pt) & (Jet_pt < 16.)", [15])
+
+    def test_negation(self):
+        self.drawclose("Jet_pt", "not(14. < Jet_pt < 16.)", [42, 10.5, 11.5, 50, 5])
+        self.drawclose("Jet_pt", "~(14. < Jet_pt < 16.)", [42, 10.5, 11.5, 50, 5])
+
 
 
 if __name__ == "__main__":

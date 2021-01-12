@@ -74,14 +74,38 @@ def sandwich_vars_in_expr(expr, prefix="", suffix=""):
 
 
 class Transformer(ast.NodeTransformer):
+
+    # "and" -> "&"
     def visit_And(self, node):
         ast.NodeVisitor.generic_visit(self, node)
         return ast.BitAnd()
 
+    # "or" -> "|"
     def visit_Or(self, node):
         ast.NodeVisitor.generic_visit(self, node)
         return ast.BitOr()
 
+    # "not" -> "~"
+    def visit_Not(self, node):
+        ast.NodeVisitor.generic_visit(self, node)
+        return ast.Invert()
+
+    # "a < b < c" -> "(a < b) and (b < c)"
+    def visit_Compare(self, node):
+        if len(node.ops) >= 2:
+            # from pandas/core/computation/expr.py
+            left = node.left
+            values = []
+            for op, comp in zip(node.ops, node.comparators):
+                new_node = self.visit(
+                    ast.Compare(comparators=[comp], left=left, ops=[op])
+                )
+                left = comp
+                values.append(new_node)
+            return self.visit(ast.BoolOp(op=ast.And(), values=values))
+        return node
+
+    # "min(x)" -> "ak.min(x, axis=-1)"
     def visit_Call(self, node):
         if hasattr(node.func, "id"):
             name = node.func.id
@@ -90,8 +114,26 @@ class Transformer(ast.NodeTransformer):
                     node.func.id = "ak.count"
                 else:
                     node.func.id = "ak." + node.func.id
-                node.keywords.append(ast.keyword("axis", ast.Num(-1)))
+                node.keywords.append(ast.keyword("axis", ast.Constant(-1)))
         ast.NodeVisitor.generic_visit(self, node)
+        return node
+
+
+    # "x[2]" -> "ak.pad_none(x, 3)[:, 2]"
+    def visit_Subscript(self, node):
+        if isinstance(node.slice.value, (ast.Constant, ast.Num)):
+            index = node.slice.value.n
+            value = node.value
+            value = ast.Call(func=ast.Name("ak.pad_none"), args=[value, ast.Constant(index+1)], keywords=[])
+            node = ast.Subscript(
+                value=value,
+                slice=ast.ExtSlice(dims=[
+                    ast.Slice(lower=None, upper=None, step=None),
+                    ast.Constant(index)
+                ]),
+                ctx=ast.Load()
+            )
+            ast.NodeVisitor.generic_visit(self, node)
         return node
 
 

@@ -35,14 +35,14 @@ For those familiar with ROOT's `TTree::Draw()`, you can compute a histogram dire
 All kwargs after first two required args are passed to a [yahist](https://github.com/aminnj/yahist) Hist1D().
 ```python
 # expression string and a query string
-df.draw("mass+0.1", "foo>0.2 and foo<0.1", bins="200,0,10")
+df.draw("mass+0.1", "0.1 < foo < 0.2", bins="200,0,10")
 
 # 2D with "x:y"
-df.draw("mass:foo+1", "foo>0.2 and foo<0.1")
+df.draw("mass:foo+1", "0.1 < foo < 0.2")
 
 # use numba to jit a specialized function 
 # (can be an order of magnitude faster than df.query/df.eval/np.histogram).
-df.jitdraw("mass+foo+1", "foo>0.2 and foo<0.1")
+df.jitdraw("mass+foo+1", "0.1 < foo < 0.2")
 ```
 
 Read root files and make a histogram in one pass (chunked reading and only branches that are needed)
@@ -131,6 +131,9 @@ df.draw("Jet_pt", "abs(Jet_eta) > 1.0 and MET_pt > 10")
 
 # 2D
 df.draw("Jet_pt:Jet_eta", "MET_pt > 40.")
+
+# indexing
+df.draw("Jet_pt[0]:Jet_eta[0]", "MET_pt > 10")
 
 # combine reduction operators with fancy indexing
 df.draw("sum(Jet_pt[abs(Jet_eta)<2.0])", bins="100,0,100")
