@@ -9,6 +9,7 @@ import pandas as pd
 
 import awkward1
 
+
 class FlatDrawTest(unittest.TestCase):
     def setUp(self):
         np.random.seed(42)
@@ -63,7 +64,6 @@ class FlatDrawTest(unittest.TestCase):
 
 
 class DrawJaggedTest(unittest.TestCase):
-
     def drawclose(self, varexp, sel, y, verbose=False):
         x = tree_draw_to_array(self.df, varexp, sel)
         x = np.array(x)
@@ -83,6 +83,15 @@ class DrawJaggedTest(unittest.TestCase):
             )
         )
         self.df = awkward1_arrays_to_dataframe(a)
+        # For ease of visualization:
+        """
+        |    | Jet_pt           | Jet_eta          |   MET_pt |
+        |----|------------------|------------------|----------|
+        |  0 | [42.  15.  10.5] | [-2.2  0.4  0.5] |     46.5 |
+        |  1 | []               | []               |     30   |
+        |  2 | [11.5]           | [1.5]            |     82   |
+        |  3 | [50.  5.]        | [-0.1 -3. ]      |      8.9 |
+        """
 
     def test_draw_to_hist1d(self):
         df = self.df
@@ -104,7 +113,11 @@ class DrawJaggedTest(unittest.TestCase):
         self.drawclose("Jet_pt", "abs(Jet_eta) > 1 and MET_pt > 10", [42.0, 11.5])
 
     def test_2d(self):
-        self.drawclose("Jet_pt:Jet_eta", "MET_pt > 40.", [[42,-2.2],[15,0.4],[10.5,0.5],[11.5,1.5]])
+        self.drawclose(
+            "Jet_pt:Jet_eta",
+            "MET_pt > 40.",
+            [[42, -2.2], [15, 0.4], [10.5, 0.5], [11.5, 1.5]],
+        )
 
     def test_correct_value_picked_out(self):
         self.drawclose("Jet_eta", "Jet_pt > 40 and MET_pt > 40", [-2.2])
@@ -114,19 +127,23 @@ class DrawJaggedTest(unittest.TestCase):
         self.drawclose("max(abs(Jet_eta))", "", [2.2, 1.5, 3.0])
         self.drawclose("max(abs(Jet_eta))", "MET_pt > 80", [1.5])
         self.drawclose("min(Jet_pt)", "", [10.5, 11.5, 5.0])
-        self.drawclose("mean(Jet_pt)", "", [1./3*(42+15+10.5), 11.5, 0.5*(50+5)])
+        self.drawclose(
+            "mean(Jet_pt)", "", [1.0 / 3 * (42 + 15 + 10.5), 11.5, 0.5 * (50 + 5)]
+        )
         self.drawclose("length(Jet_pt)", "", [3, 0, 1, 2])
         self.drawclose("length(Jet_pt)", "MET_pt < 10", [2])
-        self.drawclose("sum(Jet_pt)", "MET_pt < 10", [50+5])
+        self.drawclose("sum(Jet_pt)", "MET_pt < 10", [50 + 5])
 
     def test_indexing(self):
         self.drawclose("Jet_pt[Jet_pt>25]", "", [42, 50])
         self.drawclose("Jet_pt[2]", "", [10.5])
-        self.drawclose("Jet_pt[0]:Jet_pt[1]", "", [[42,15], [50,5]])
-        self.drawclose("Jet_pt[0]:Jet_pt[1]", "MET_pt > 40", [[42,15]])
+        self.drawclose("Jet_pt[0]:Jet_pt[1]", "", [[42, 15], [50, 5]])
+        self.drawclose("Jet_pt[0]:Jet_pt[1]", "MET_pt > 40", [[42, 15]])
 
     def test_indexing_reduction(self):
-        self.drawclose("sum(Jet_pt[abs(Jet_eta)<2.0])", "", [15+10.5, 0.0, 11.5, 50.])
+        self.drawclose(
+            "sum(Jet_pt[abs(Jet_eta)<2.0])", "", [15 + 10.5, 0.0, 11.5, 50.0]
+        )
 
     def test_counting(self):
         self.drawclose("sum(Jet_pt>10)", "MET_pt>40", [3, 1])
@@ -144,9 +161,8 @@ class DrawJaggedTest(unittest.TestCase):
         self.drawclose("Jet_pt", "~(14. < Jet_pt < 16.)", [42, 10.5, 11.5, 50, 5])
 
     def test_slicing(self):
-        self.drawclose("sum(Jet_pt[:2])", "", [42+15, 0, 11.5, 50+5])
-        self.drawclose("sum(Jet_pt[2:3])", "MET_pt > 40", [10.5, 0.])
-
+        self.drawclose("sum(Jet_pt[:2])", "", [42 + 15, 0, 11.5, 50 + 5])
+        self.drawclose("sum(Jet_pt[2:3])", "MET_pt > 40", [10.5, 0.0])
 
 
 if __name__ == "__main__":

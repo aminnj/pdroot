@@ -16,6 +16,7 @@ from yahist import Hist1D, Hist2D
 
 from .parse import variables_in_expr, nops_in_expr, to_ak_expr, split_expr_on_free_colon
 
+
 def tree_draw(df, varexp, sel="", **kwargs):
     """
     1d and 2d drawing function that supports jagged columns
@@ -26,6 +27,7 @@ def tree_draw(df, varexp, sel="", **kwargs):
         return Hist1D(array, **kwargs)
     elif np.ndim(array) == 2:
         return Hist2D(array, **kwargs)
+
 
 def tree_draw_to_array(df, varexp, sel=""):
     """
@@ -76,7 +78,9 @@ def tree_draw_to_array(df, varexp, sel=""):
     # of the two to make sure their lengths will be equal
     if len(dims) == 2:
         x, y = dims
-        if (has_mask(x) and np.ndim(x.mask) != 0) or (has_mask(y) and np.ndim(y.mask) != 0):
+        if (has_mask(x) and np.ndim(x.mask) != 0) or (
+            has_mask(y) and np.ndim(y.mask) != 0
+        ):
             mask = x.mask | y.mask
             x = x.data[~mask]
             y = y.data[~mask]
