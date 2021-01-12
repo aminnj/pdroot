@@ -64,10 +64,13 @@ class FlatDrawTest(unittest.TestCase):
 
 class DrawJaggedTest(unittest.TestCase):
 
-    def drawclose(self, varexp, sel, y):
+    def drawclose(self, varexp, sel, y, verbose=False):
         x = tree_draw_to_array(self.df, varexp, sel)
         x = np.array(x)
         y = np.array(y)
+        if verbose:
+            print("true", x)
+            print("test", y)
         self.assertEqual(x.shape, y.shape)
         self.assertTrue(np.allclose(x, y))
 
@@ -139,6 +142,10 @@ class DrawJaggedTest(unittest.TestCase):
     def test_negation(self):
         self.drawclose("Jet_pt", "not(14. < Jet_pt < 16.)", [42, 10.5, 11.5, 50, 5])
         self.drawclose("Jet_pt", "~(14. < Jet_pt < 16.)", [42, 10.5, 11.5, 50, 5])
+
+    def test_slicing(self):
+        self.drawclose("sum(Jet_pt[:2])", "", [42+15, 0, 11.5, 50+5])
+        self.drawclose("sum(Jet_pt[2:3])", "MET_pt > 40", [10.5, 0.])
 
 
 

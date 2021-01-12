@@ -77,17 +77,17 @@ class Transformer(ast.NodeTransformer):
 
     # "and" -> "&"
     def visit_And(self, node):
-        ast.NodeVisitor.generic_visit(self, node)
+        self.generic_visit(node)
         return ast.BitAnd()
 
     # "or" -> "|"
     def visit_Or(self, node):
-        ast.NodeVisitor.generic_visit(self, node)
+        self.generic_visit(node)
         return ast.BitOr()
 
     # "not" -> "~"
     def visit_Not(self, node):
-        ast.NodeVisitor.generic_visit(self, node)
+        self.generic_visit(node)
         return ast.Invert()
 
     # "a < b < c" -> "(a < b) and (b < c)"
@@ -115,29 +115,36 @@ class Transformer(ast.NodeTransformer):
                 else:
                     node.func.id = "ak." + node.func.id
                 node.keywords.append(ast.keyword("axis", ast.Constant(-1)))
-        ast.NodeVisitor.generic_visit(self, node)
+        self.generic_visit(node)
         return node
 
 
     # "x[2]" -> "ak.pad_none(x, 3)[:, 2]"
     def visit_Subscript(self, node):
-        if isinstance(node.slice.value, (ast.Constant, ast.Num)):
-            index = node.slice.value.n
-            value = node.value
-            value = ast.Call(func=ast.Name("ak.pad_none"), args=[value, ast.Constant(index+1)], keywords=[])
+        valid_slice = False
+        for attr in ["value", "upper", "lower", "step"]:
+            if isinstance(getattr(node.slice, attr, None), (ast.Constant, ast.Num)): valid_slice = True
+        if valid_slice:
+            if hasattr(node.slice, "value"):
+                index = node.slice.value.n
+                value = ast.Call(func=ast.Name("ak.pad_none"), args=[node.value, ast.Constant(index+1)], keywords=[])
+                dimslice = ast.Constant(index)
+            elif hasattr(node.slice, "upper"):
+                upper = node.slice.upper.n
+                value = ast.Call(func=ast.Name("ak.pad_none"), args=[node.value, ast.Constant(upper+1)], keywords=[])
+                dimslice = node.slice
             node = ast.Subscript(
                 value=value,
                 slice=ast.ExtSlice(dims=[
                     ast.Slice(lower=None, upper=None, step=None),
-                    ast.Constant(index)
+                    dimslice,
                 ]),
                 ctx=ast.Load()
             )
-            ast.NodeVisitor.generic_visit(self, node)
+            self.generic_visit(node)
         return node
 
-
-def to_ak_expr(expr):
+def to_ak_expr(expr, transformer=Transformer()):
     """
     turns 
         expr = "sum(Jet_pt[abs(Jet_eta)>4.])"
@@ -145,6 +152,26 @@ def to_ak_expr(expr):
         expr = "ak.sum(Jet_pt[abs(Jet_eta) > 4.0], axis=-1)"
     """
     parsed = ast.parse(expr)
-    Transformer().visit(parsed)
+    transformer.visit(parsed)
     source = astor.to_source(parsed).strip()
     return source
+
+def split_expr_on_free_colon(expr):
+    """
+    When splitting on : for the purpose of drawing in 2D,
+    a simple expr.split(":") won't work if it picks a slice,
+    so we find a colon which has an equal number of open
+    and close parentheses/brackets before it.
+
+    Input: "sum(Jet_pt[:2]):Jet_eta"
+    Output: ("sum(Jet_pt[:2])", "Jet_eta")
+    """
+    n_enclosure = 0
+    for ic, c in enumerate(expr):
+        if c == "[": n_enclosure += 10
+        elif c == "]": n_enclosure -= 10
+        elif c == "(": n_enclosure += 1
+        elif c == ")": n_enclosure -= 1
+        elif (c == ":") and (n_enclosure == 0):
+            return expr[:ic], expr[ic+1:]
+    return [expr]

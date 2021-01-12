@@ -14,7 +14,7 @@ warnings.resetwarnings()
 
 from yahist import Hist1D, Hist2D
 
-from .parse import variables_in_expr, nops_in_expr, to_ak_expr
+from .parse import variables_in_expr, nops_in_expr, to_ak_expr, split_expr_on_free_colon
 
 def tree_draw(df, varexp, sel="", **kwargs):
     """
@@ -41,7 +41,7 @@ def tree_draw_to_array(df, varexp, sel=""):
         globalmask = eval(to_ak_expr(sel))
 
     dims = []
-    for ve in varexp.split(":"):
+    for ve in split_expr_on_free_colon(varexp):
 
         vals = eval(to_ak_expr(ve))
         if sel:
