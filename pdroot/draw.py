@@ -34,18 +34,22 @@ def tree_draw_to_array(df, varexp, sel=""):
     1d and 2d drawing function that supports jagged columns
     returns array
     """
+
+    varexp_exprs = [to_ak_expr(expr) for expr in split_expr_on_free_colon(varexp)]
+    sel_expr = to_ak_expr(sel)
+
     colnames = variables_in_expr(f"{varexp}${sel}")
     for colname in colnames:
         locals()[colname] = df[colname].ak(1)
     locals()["ak"] = awkward1
 
     if sel:
-        globalmask = eval(to_ak_expr(sel))
+        globalmask = eval(sel_expr)
 
     dims = []
-    for ve in split_expr_on_free_colon(varexp):
+    for expr in varexp_exprs:
+        vals = eval(expr)
 
-        vals = eval(to_ak_expr(ve))
         if sel:
             vals = vals[globalmask]
 

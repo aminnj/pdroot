@@ -4,7 +4,22 @@ from io import BytesIO
 from tokenize import tokenize, NAME, ENCODING
 
 
-def variables_in_expr(expr):
+RESERVED_TOKENS = [
+    "and",
+    "or",
+    "abs",
+    "max",
+    "min",
+    "sum",
+    "mean",
+    "not",
+    "length",
+    "True",
+    "False",
+]
+
+
+def variables_in_expr(expr, exclude=RESERVED_TOKENS, include=[]):
     """
     Given a string like "DV_x:DV_y:(lxy < DV_x+1) and (lxy>1)", returns a list of
     ["DV_x", "DV_y", "lxy"]
@@ -22,7 +37,7 @@ def variables_in_expr(expr):
             continue
         if ix < len(g) - 1 and g[ix + 1][1] in [".", "("]:
             continue
-        if tokval in ["and", "or", "abs", "max", "min", "sum", "mean"]:
+        if (tokval in exclude) and (tokval not in include):
             continue
         varnames.append(tokval)
     varnames = list(set(varnames))
@@ -103,6 +118,7 @@ class Transformer(ast.NodeTransformer):
                 left = comp
                 values.append(new_node)
             return self.visit(ast.BoolOp(op=ast.And(), values=values))
+        self.generic_visit(node)
         return node
 
     # "min(x)" -> "ak.min(x, axis=-1)"
@@ -178,9 +194,9 @@ def split_expr_on_free_colon(expr):
     n_enclosure = 0
     for ic, c in enumerate(expr):
         if c == "[":
-            n_enclosure += 100
+            n_enclosure += 1j
         elif c == "]":
-            n_enclosure -= 100
+            n_enclosure -= 1j
         elif c == "(":
             n_enclosure += 1
         elif c == ")":

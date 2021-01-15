@@ -20,8 +20,8 @@ class FlatDrawTest(unittest.TestCase):
 
     def test_draw_1d(self):
         df = self.df
-        c1 = tree_draw(df, "a+b", "(a<b) and (b<c) and (a<0.5)", bins="10,0,2").counts
-        sel = df.eval("(a<b) and (b<c) and (a<0.5)")
+        c1 = tree_draw(df, "a+b", "(a<b<c) and (a<0.5)", bins="10,0,2").counts
+        sel = df.eval("(a<b<c) and (a<0.5)")
         c2, _ = np.histogram(df.eval("a+b")[sel], bins=np.linspace(0, 2, 11))
         self.assertTrue(np.allclose(c1, c2))
 
@@ -64,8 +64,10 @@ class FlatDrawTest(unittest.TestCase):
 
 
 class DrawJaggedTest(unittest.TestCase):
-    def drawclose(self, varexp, sel, y, verbose=False):
-        x = tree_draw_to_array(self.df, varexp, sel)
+    def drawclose(self, varexp, sel, y, verbose=False, df=None):
+        if df is None:
+            df = self.df
+        x = tree_draw_to_array(df, varexp, sel)
         x = np.array(x)
         y = np.array(y)
         if verbose:
@@ -159,12 +161,33 @@ class DrawJaggedTest(unittest.TestCase):
     def test_negation(self):
         self.drawclose("Jet_pt", "not(14. < Jet_pt < 16.)", [42, 10.5, 11.5, 50, 5])
         self.drawclose("Jet_pt", "~(14. < Jet_pt < 16.)", [42, 10.5, 11.5, 50, 5])
+        self.drawclose("not MET_pt>40", "", [False, True, False, True])
 
     def test_slicing(self):
         self.drawclose("sum(Jet_pt[:2])", "", [42 + 15, 0, 11.5, 50 + 5])
         self.drawclose("sum(Jet_pt[2:3])", "MET_pt > 40", [10.5, 0.0])
-        self.drawclose("sum(Jet_pt[(Jet_pt>40) and abs(Jet_eta)<2.4])", "", [42, 0, 0, 50])
-        self.drawclose("sum(Jet_pt[(Jet_pt>40) and abs(Jet_eta)<2.4])", "MET_pt > 40", [42, 0])
+        self.drawclose(
+            "sum(Jet_pt[(Jet_pt>40) and abs(Jet_eta)<2.4])", "", [42, 0, 0, 50]
+        )
+        self.drawclose(
+            "sum(Jet_pt[(Jet_pt>40) and abs(Jet_eta)<2.4])", "MET_pt > 40", [42, 0]
+        )
+
+    def test_nested(self):
+        self.drawclose(
+            "length(Jet_pt) == 2 and sum(Jet_pt) > 40", "", [False, False, False, True]
+        )
+        self.drawclose(
+            "(MET_pt>40) and sum((Jet_pt>40) and (abs(Jet_eta)<2.4)) >= 1",
+            "",
+            [True, False, False, False],
+        )
+
+    def test_booleans(self):
+        self.drawclose("(MET_pt>30) or False", "", [True, False, True, False])
+        self.drawclose("(MET_pt>30) and False", "", [False, False, False, False])
+        self.drawclose("(MET_pt>30) or True", "", [True, True, True, True])
+        self.drawclose("(MET_pt>30) and True", "", [True, False, True, False])
 
 
 if __name__ == "__main__":

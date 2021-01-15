@@ -20,21 +20,21 @@ class ReadWriteTest(unittest.TestCase):
                 b4=np.random.randint(0, 5, N),
             )
         )
-        to_root(df1, "test.root")
-        df2 = read_root("test.root")
+        to_root(df1, ".test.root")
+        df2 = read_root(".test.root")
         self.assertTrue(np.allclose(df1, df2))
 
     def test_pandas_injection(self):
         df1 = pd.DataFrame(dict(b1=np.random.random(100),))
-        df1.to_root("test.root")
-        df2 = pd.read_root("test.root")
+        df1.to_root(".test.root")
+        df2 = pd.read_root(".test.root")
         self.assertTrue(np.allclose(df1, df2))
 
     def test_jagged(self):
         x_in = fletcher.FletcherContinuousArray([[1.0, 2.0], [], [3.0, 4.0, 5.0]])
         df = pd.DataFrame(dict(x=x_in))
-        df.to_root("test.root", compression_jagged=None)
-        x_out = pd.read_root("test.root")["x"].values
+        df.to_root(".test.root", compression_jagged=None)
+        x_out = pd.read_root(".test.root")["x"].values
         v_in = list(map(list, x_in.data))
         v_out = list(map(list, x_out.data))
         self.assertEqual(v_in, v_out)
@@ -43,8 +43,8 @@ class ReadWriteTest(unittest.TestCase):
         x = fletcher.FletcherContinuousArray([[1.0, 2.0], [], [3.0, 4.0, 5.0]])
         y = np.zeros(len(x), dtype=float)
         df = pd.DataFrame(dict(x=x, y=y))
-        df.to_root("test.root", compression_jagged=None)
-        df = pd.read_root("test.root")
+        df.to_root(".test.root", compression_jagged=None)
+        df = pd.read_root(".test.root")
         self.assertEqual(df["x"].ak(0).sum().tolist(), [3.0, 0.0, 12.0])
         self.assertEqual(awkward1.sum(df["x"], axis=-1).tolist(), [3.0, 0.0, 12.0])
 
@@ -64,10 +64,10 @@ class ReadWriteTest(unittest.TestCase):
         x = fletcher.FletcherContinuousArray(100 * [[1.0, 2.0], [], [3.0, 4.0, 5.0]])
         y = np.zeros(len(x), dtype=float)
         df = pd.DataFrame(dict(x=x, y=y))
-        df.to_root("test.root", compression_jagged=None)
+        df.to_root(".test.root", compression_jagged=None)
 
         df = ChunkDataFrame(
-            filename="test.root", treename="t", entry_start=0, entry_stop=10
+            filename=".test.root", treename="t", entry_start=0, entry_stop=10
         )
         self.assertTrue("x" not in df.columns)
         self.assertEqual(len(df["x"]), 10)
