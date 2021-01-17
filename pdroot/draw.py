@@ -14,7 +14,7 @@ warnings.resetwarnings()
 
 from yahist import Hist1D, Hist2D
 
-from .parse import variables_in_expr, nops_in_expr, to_ak_expr, split_expr_on_free_colon
+from .parse import variables_in_expr, to_ak_expr, split_expr_on_free_colon
 
 
 def tree_draw(df, varexp, sel="", **kwargs):

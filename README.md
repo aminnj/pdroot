@@ -34,20 +34,11 @@ df = pd.read_root("test.root", columns=["mass", "foo"], entry_start=0, entry_sto
 For those familiar with ROOT's `TTree::Draw()`, you can compute a histogram directly from a dataframe.
 All kwargs after first two required args are passed to a [yahist](https://github.com/aminnj/yahist) Hist1D().
 ```python
-# expression string and a query string
+# expression string and a query/selection string
 df.draw("mass+0.1", "0.1 < foo < 0.2", bins="200,0,10")
 
 # 2D with "x:y"
 df.draw("mass:foo+1", "0.1 < foo < 0.2")
-
-# use numba to jit a specialized function 
-# (can be an order of magnitude faster than df.query/df.eval/np.histogram).
-df.jitdraw("mass+foo+1", "0.1 < foo < 0.2")
-```
-
-Read root files and make a histogram in one pass (chunked reading and only branches that are needed)
-```python
-pdroot.iter_draw("*.root", "mass", "(foo>0.2)", bins="200,0,10")
 ```
 
 ### Jagged arrays (e.g., in NanoAOD)

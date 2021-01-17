@@ -44,24 +44,6 @@ def variables_in_expr(expr, exclude=RESERVED_TOKENS, include=[]):
     return varnames
 
 
-def nops_in_expr(expr):
-    """
-    Number of mathematical/logical operations in an expression
-    """
-
-    varnames = []
-    from tokenize import tokenize, NAME, OP
-    from io import BytesIO
-
-    tokens = tokenize(BytesIO(expr.encode("utf-8")).readline)
-    nops = 0
-    for x in tokens:
-        toknum, tokval = x[:2]
-        nops += (toknum == NAME) and (tokval in ["and", "or"])
-        nops += toknum == OP
-    return nops
-
-
 def sandwich_vars_in_expr(expr, prefix="", suffix=""):
     """
     prepends `prefix`, and appends `suffix`
@@ -137,26 +119,24 @@ class Transformer(ast.NodeTransformer):
     # "x[2]" -> "ak.pad_none(x, 3)[:, 2]"
     def visit_Subscript(self, node):
         valid_slice = False
+        s = node.slice
         for attr in ["value", "upper", "lower", "step"]:
-            if isinstance(getattr(node.slice, attr, None), (ast.Constant, ast.Num)):
+            if isinstance(getattr(s, attr, None), (ast.Constant, ast.Num)):
                 valid_slice = True
         if valid_slice:
-            if hasattr(node.slice, "value"):
-                index = node.slice.value.n
-                value = ast.Call(
-                    func=ast.Name("ak.pad_none"),
-                    args=[node.value, ast.Constant(index + 1)],
-                    keywords=[],
-                )
-                dimslice = ast.Constant(index)
-            elif hasattr(node.slice, "upper"):
-                upper = node.slice.upper.n
-                value = ast.Call(
-                    func=ast.Name("ak.pad_none"),
-                    args=[node.value, ast.Constant(upper + 1)],
-                    keywords=[],
-                )
-                dimslice = node.slice
+            if hasattr(s, "value"):
+                upper = s.value.n
+                dimslice = ast.Constant(upper)
+            elif hasattr(s, "upper"):
+                upper = s.upper.n
+                dimslice = s
+            else:
+                raise Exception(f"Slice node not supported: {s}")
+            value = ast.Call(
+                func=ast.Name("ak.pad_none"),
+                args=[node.value, ast.Constant(upper + 1)],
+                keywords=[],
+            )
             node = ast.Subscript(
                 value=value,
                 slice=ast.ExtSlice(
