@@ -26,4 +26,4 @@ jobs:
     - name: Run unit tests
       run: |
         pwd; ls -lrth
-        pytest tests/*_t.py
+        pytest tests/
