@@ -32,6 +32,7 @@ jobs:
     - run: conda list
     - run: conda config --show
     - name: Install conda dependencies
+      run: |
         conda install --channel=conda-forge root
     - name: Install dependencies
       run: |
