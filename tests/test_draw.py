@@ -160,8 +160,5 @@ def test_draw(df_jagged, varexp, sel, expected):
     y = np.array(expected)
     np.testing.assert_allclose(x, y)
 
-def test_root_import():
-    import ROOT as r
-
 if __name__ == "__main__":
     pytest.main(["--capture=no", __file__])
