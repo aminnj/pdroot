@@ -21,11 +21,13 @@ jobs:
       run: |
         wget https://root.cern/download/root_v6.22.06.Linux-ubuntu18-x86_64-gcc7.5.tar.gz
         tar -xzf root_v6.22.06.Linux-ubuntu18-x86_64-gcc7.5.tar.gz
+        alias python=python3
         source root/bin/thisroot.sh
         python -m pip install --upgrade pip
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
         pip install pytest
         python setup.py install
+        which conda
     - name: Run unit tests
       run: |
         pwd; ls -lrth
