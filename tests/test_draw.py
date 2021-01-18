@@ -67,6 +67,7 @@ def test_pandas_injection(df_flat):
     assert h.integral == 1000.0
 
 
+@pytest.mark.filterwarnings("ignore:numpy.ufunc size changed")
 def test_jitdraw_1d(df_flat):
     df = df_flat
     bins = np.linspace(0, 2, 11)
@@ -159,6 +160,8 @@ def test_draw(df_jagged, varexp, sel, expected):
     y = np.array(expected)
     np.testing.assert_allclose(x, y)
 
+def test_root_import():
+    import ROOT as r
 
 if __name__ == "__main__":
     pytest.main(["--capture=no", __file__])
