@@ -11,42 +11,18 @@ jobs:
 
     runs-on: ubuntu-latest
 
-    strategy:
-      fail-fast: false
-
-    defaults:
-      run:
-        shell: bash -l {0}
-
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python 3.8
       uses: actions/setup-python@v2
       with:
         python-version: 3.8
-    - uses: conda-incubator/setup-miniconda@v2
-      with:
-        activate-environment: ""
-        auto-activate-base: true
-    - run: conda info
-    - run: conda list
-    - run: conda config --show
-    - name: Install conda dependencies
-      run: |
-        conda create -n testenv --channel=conda-forge root pytest
     - name: Install dependencies
       run: |
-        which python
-        conda activate base
-        which python
-        conda activate testenv
-        which python
-        python -V
         python -m pip install --upgrade pip
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
         pip install pytest
         python setup.py install
-        which conda
     - name: Run unit tests
       run: |
         pwd; ls -lrth
