@@ -14,6 +14,10 @@ jobs:
     strategy:
       fail-fast: false
 
+    defaults:
+      run:
+        shell: bash -l {0}
+
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python 3.8
@@ -22,9 +26,9 @@ jobs:
         python-version: 3.8
     - uses: conda-incubator/setup-miniconda@v2
       with:
-        activate-environment: test
+        activate-environment: ""
         python-version: 3.8
-        auto-activate-base: false
+        auto-activate-base: true
     - run: conda info
     - run: conda list
     - run: conda config --show
