@@ -9,20 +9,29 @@ on:
 jobs:
   build:
 
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
 
     steps:
     - uses: actions/checkout@v2
-    - name: Set up Python 3.7
+    - name: Set up Python 3.8
       uses: actions/setup-python@v2
       with:
-        python-version: 3.7
+        python-version: 3.8
+    - uses: conda-incubator/setup-miniconda@v2
+      with:
+        activate-environment: test
+        python-version: 3.8
+    - run: conda info
+    - run: conda list
+    - run: conda config --show
     - name: Install dependencies
       run: |
-        wget https://root.cern/download/root_v6.22.06.Linux-ubuntu18-x86_64-gcc7.5.tar.gz
-        tar -xzf root_v6.22.06.Linux-ubuntu18-x86_64-gcc7.5.tar.gz
-        alias python=python3
-        source root/bin/thisroot.sh
+        which python
+        python -V
+        conda install root
         python -m pip install --upgrade pip
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
         pip install pytest
