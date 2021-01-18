@@ -24,6 +24,7 @@ jobs:
       with:
         activate-environment: test
         python-version: 3.8
+        auto-activate-base: true
     - run: conda info
     - run: conda list
     - run: conda config --show
