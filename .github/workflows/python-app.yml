@@ -33,7 +33,7 @@ jobs:
     - run: conda config --show
     - name: Install conda dependencies
       run: |
-        conda create -n testenv --channel=conda-forge root
+        conda create -n testenv --channel=conda-forge root pytest
     - name: Install dependencies
       run: |
         which python
