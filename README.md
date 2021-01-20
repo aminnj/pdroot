@@ -3,36 +3,27 @@
 pip install pdroot
 ```
 
-## Usage
-
-This import augments `pandas` making it easier to deal with ROOT files and make histograms:
-```python
-import pdroot
-```
-
 ### Reading/writing ROOT files
 
 ```python
 import pandas as pd
 import numpy as np
-N = int(1e5)
-df = pd.DataFrame(dict(
-    mass=np.random.normal(3.0, 0.1, N),
-    foo=np.random.random(N), 
-    bar=np.random.random(N),
-    ))
+import pdroot # powers up pandas
 
-# write out dataframe to a ROOT file:
+df = pd.DataFrame(dict(foo=np.random.random(100), bar=np.random.random(100)))
+
+# write out dataframe to a ROOT file
 df.to_root("test.root")
 
-# read ROOT files and optionally specify certain columns and/or a range of rows.
-df = pd.read_root("test.root", columns=["mass", "foo"], entry_start=0, entry_stop=1000)
+# read ROOT files and optionally specify certain columns and/or a range of rows
+df = pd.read_root("test.root", columns=["foo"], entry_start=0, entry_stop=50)
 ```
 
 ### Histogram drawing from DataFrames
 
 For those familiar with ROOT's `TTree::Draw()`, you can compute a histogram directly from a dataframe.
 All kwargs after first two required args are passed to a [yahist](https://github.com/aminnj/yahist) Hist1D().
+"Jagged" branches are also supported (see below).
 ```python
 # expression string and a query/selection string
 df.draw("mass+0.1", "0.1 < foo < 0.2", bins="200,0,10")
@@ -45,9 +36,8 @@ df.draw("mass:foo+1", "0.1 < foo < 0.2")
 
 #### Manual reading
 
-One can read jagged arrays into DataFrames without converting to (super slow) lists of lists by using zero-copy conversions from `awkward1` to `arrow` 
-and the [fletcher](https://github.com/xhochy/fletcher) pandas ExtensionArray. In other words, after the arrays are read from the ROOT file,
-making the dataframe is instantaneous.
+One can read jagged arrays into regular DataFrames without converting to (super slow) lists of lists by using zero-copy conversions from `awkward1` to `arrow` 
+and the [fletcher](https://github.com/xhochy/fletcher) pandas ExtensionArray.
 
 ```python
 df = pd.read_root("nano.root", columns=["/Electron_(pt|eta|phi|mass)$/", "MET_pt"])
@@ -61,25 +51,15 @@ df.head()
 |  3 | [0.17492676]              | [-0.04089355]             | [2.9018555]           | [178.91772]           |  26.7631 |
 |  4 | [ 0.12136841 -1.8227539 ] | [-0.00730515 -0.00543594] | [1.4355469 1.3552246] | [19.721205 14.386331] |  48.4577 |
 
-```python
->>> df.dtypes
-
-Electron_eta     fletcher_continuous[list<item: float>]
-Electron_mass    fletcher_continuous[list<item: float>]
-Electron_phi     fletcher_continuous[list<item: float>]
-Electron_pt      fletcher_continuous[list<item: float>]
-MET_pt                                          float32
-dtype: object
-```
-
 It's easy to get the awkward array from the fletcher columns (also a zero-copy operation):
 ```python
->>> df["Electron_pt"].ak() # or .ak(1) to get an `awkward1` array instead of the default `awkward0`
+>>> df["Electron_pt"].ak() 
+# or ak(1) to get an `awkward1` array instead of the default `awkward0`
 
 <JaggedArray [[] [121.077896] [12.117786] ... [48.620327 35.415432] []] at 0x0001199ba5f8>
 ```
 
-And provided four component branches (`*_{pt,eta,phi,mass}`) are in the dataframe, one can do
+Provided four component branches (`*_{pt,eta,phi,mass}`) are in the dataframe, one can do
 ```python
 >>> df.p4("Electron").p
 
@@ -88,13 +68,12 @@ And provided four component branches (`*_{pt,eta,phi,mass}`) are in the datafram
 
 #### Drawing
 
-Drawing from a DataFrame supports jagged columns, so the following are valid statements:
+Drawing from a DataFrame handles jagged columns via [awkward-array](https://github.com/scikit-hep/awkward-1.0) and AST transformations.
 ```python
 # supports reduction operators (ROOT's Length$ -> length, etc)
 df.draw("length(Jet_pt)")
 df.draw("sum(Jet_pt>10)", "MET_pt>40", bins="5,-0.5,4.5")
 df.draw("max(abs(Jet_eta))")
-df.draw("mean(Jet_pt)")
 
 # combine event-level and object-level selection
 df.draw("Jet_pt", "abs(Jet_eta) > 1.0 and MET_pt > 10")
