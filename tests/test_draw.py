@@ -143,6 +143,7 @@ cases = [
     ("min(min(Jet_pt), min(Jet_eta))", "MET_pt > 40", [-2.2, 1.5]),
     ("min(min(Jet_pt), min(Jet_eta))", "", [-2.2, 1.5, -3]),
     ("max(min(Jet_pt), min(Jet_eta))", "", [10.5, 11.5, 5]),
+    ("min(MET_pt, 50)", "", [46.5, 30, 50, 8.9]),
     ("min(MET_pt, MET_pt+1)", "", [46.5, 30, 82, 8.9]),
     ("max(MET_pt, MET_pt+1)", "", [47.5, 31, 83, 9.9]),
     ("max(min(Jet_pt), MET_pt*2)", "", [93, 164, 17.8]),
