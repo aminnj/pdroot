@@ -109,7 +109,7 @@ df.draw("Jet_pt[0]:Jet_eta[0]", "MET_pt > 10")
 df.draw("sum(Jet_pt[abs(Jet_eta)<2.0])", bins="100,0,100")
 
 # use the underlying array before a histogram is created
-df["ht"] = df.draw_to_array("sum(Jet_pt[Jet_pt>40])")
+df["ht"] = df.draw("sum(Jet_pt[Jet_pt>40])", to_array=True)
 ```
 
 #### Lazy chunked reading

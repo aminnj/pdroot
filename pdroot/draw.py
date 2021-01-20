@@ -17,12 +17,14 @@ from yahist import Hist1D, Hist2D
 from .parse import variables_in_expr, to_ak_expr, split_expr_on_free_colon
 
 
-def tree_draw(df, varexp, sel="", **kwargs):
+def tree_draw(df, varexp, sel="", to_array=False, **kwargs):
     """
     1d and 2d drawing function that supports jagged columns
     returns hist
     """
     array = tree_draw_to_array(df, varexp, sel)
+    if to_array:
+        return array
     if np.ndim(array) == 1:
         return Hist1D(array, **kwargs)
     elif np.ndim(array) == 2:
