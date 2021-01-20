@@ -108,11 +108,17 @@ class Transformer(ast.NodeTransformer):
         if hasattr(node.func, "id"):
             name = node.func.id
             if name in ["min", "max", "sum", "mean", "length"]:
-                if name == "length":
-                    node.func.id = "ak.count"
-                else:
+                if len(node.args) == 1:
+                    if name == "length":
+                        node.func.id = "count"
                     node.func.id = "ak." + node.func.id
-                node.keywords.append(ast.keyword("axis", ast.Constant(-1)))
+                    node.keywords.append(ast.keyword("axis", ast.Constant(-1)))
+                elif (len(node.args) == 2) and name in ["min", "max"]:
+                    node.func.id = {"min": "np.minimum", "max": "np.maximum"}[name]
+                else:
+                    raise Exception(
+                        f"Unsupported function '{name}' with {len(node.args)} arguments."
+                    )
         self.generic_visit(node)
         return node
 

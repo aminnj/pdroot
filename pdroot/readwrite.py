@@ -88,7 +88,7 @@ def read_root(
         treename = find_tree_name(f)
     if treename is None:
         raise RuntimeError(
-            "`treename` must be specified. File contains keys: {treenames}"
+            f"`treename` must be specified. File contains keys: {f.keys()}"
         )
 
     executor = None

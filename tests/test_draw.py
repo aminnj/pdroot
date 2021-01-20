@@ -1,6 +1,5 @@
-from pdroot import tree_draw
+from pdroot.draw import tree_draw
 from pdroot.readwrite import awkward1_arrays_to_dataframe
-from pdroot.draw import tree_draw_to_array
 
 import numpy as np
 import pandas as pd
@@ -101,64 +100,72 @@ def test_draw_to_hist2d(df_jagged):
     assert h.integral == 4
 
 
-@pytest.mark.parametrize(
-    "varexp,sel,expected",
-    [
-        ("Jet_pt", "", [42.0, 15.0, 10.5, 11.5, 50.0, 5.0]),
-        ("Jet_pt", "abs(Jet_eta) > 1 and MET_pt > 10", [42.0, 11.5]),
-        ("Jet_pt", "MET_pt > 40", [42, 15, 10.5, 11.5]),
-        ("MET_pt", "MET_pt > 40", [46.5, 82.0]),
-        ("Jet_pt", "Jet_pt > 40", [42.0, 50.0]),
-        ("MET_pt", "", [46.5, 30.0, 82.0, 8.9]),
-        ("Jet_pt", "", [42.0, 15.0, 10.5, 11.5, 50.0, 5.0]),
-        ("Jet_eta + 1", "Jet_pt > 40 and MET_pt > 40", [-1.2]),
-        ("Jet_eta", "Jet_pt > 40 and MET_pt > 40", [-2.2]),
-        ("sum(Jet_pt)", "MET_pt < 10", [50 + 5]),
-        ("length(Jet_pt)", "MET_pt < 10", [2]),
-        ("length(Jet_pt)", "", [3, 0, 1, 2]),
-        ("mean(Jet_pt)", "", [1.0 / 3 * (42 + 15 + 10.5), 11.5, 0.5 * (50 + 5)]),
-        ("min(Jet_pt)", "", [10.5, 11.5, 5.0]),
-        ("max(abs(Jet_eta))", "MET_pt > 80", [1.5]),
-        ("max(abs(Jet_eta))", "", [2.2, 1.5, 3.0]),
-        ("Jet_pt[0]:Jet_pt[1]", "MET_pt > 40", [[42, 15]]),
-        ("Jet_pt[0]:Jet_pt[1]", "", [[42, 15], [50, 5]]),
-        ("Jet_pt[2]", "", [10.5]),
-        ("Jet_pt[Jet_pt>25]", "", [42, 50]),
-        ("sum(Jet_pt[abs(Jet_eta)<2.0])", "", [15 + 10.5, 0.0, 11.5, 50.0]),
-        ("sum(Jet_pt>10)", "MET_pt>40", [3, 1]),
-        ("np.exp(sum(Jet_pt>10))", "MET_pt>40", [np.exp(3), np.exp(1)]),
-        ("Jet_pt", "(14. < Jet_pt) & (Jet_pt < 16.)", [15]),
-        ("Jet_pt", "(14. < Jet_pt) and (Jet_pt < 16.)", [15]),
-        ("Jet_pt", "(14. < Jet_pt < 16.)", [15]),
-        ("not MET_pt>40", "", [False, True, False, True]),
-        ("Jet_pt", "~(14. < Jet_pt < 16.)", [42, 10.5, 11.5, 50, 5]),
-        ("Jet_pt", "not(14. < Jet_pt < 16.)", [42, 10.5, 11.5, 50, 5]),
-        ("(MET_pt>30) and True", "", [True, False, True, False]),
-        ("(MET_pt>30) or True", "", [True, True, True, True]),
-        ("(MET_pt>30) and False", "", [False, False, False, False]),
-        ("(MET_pt>30) or False", "", [True, False, True, False]),
-        ("length(Jet_pt) == 2 and sum(Jet_pt) > 40", "", [False, False, False, True]),
-        ("sum(Jet_pt[(Jet_pt>40) and abs(Jet_eta)<2.4])", "MET_pt > 40", [42, 0]),
-        ("sum(Jet_pt[(Jet_pt>40) and abs(Jet_eta)<2.4])", "", [42, 0, 0, 50]),
-        ("sum(Jet_pt[2:3])", "MET_pt > 40", [10.5, 0.0]),
-        ("sum(Jet_pt[:2])", "", [42 + 15, 0, 11.5, 50 + 5]),
-        (
-            "Jet_pt:Jet_eta",
-            "MET_pt > 40.",
-            [[42, -2.2], [15, 0.4], [10.5, 0.5], [11.5, 1.5]],
-        ),
-        (
-            "(MET_pt>40) and sum((Jet_pt>40) and (abs(Jet_eta)<2.4)) >= 1",
-            "",
-            [True, False, False, False],
-        ),
-    ],
-)
+cases = [
+    ("Jet_pt", "", [42.0, 15.0, 10.5, 11.5, 50.0, 5.0]),
+    ("Jet_pt", "abs(Jet_eta) > 1 and MET_pt > 10", [42.0, 11.5]),
+    ("Jet_pt", "MET_pt > 40", [42, 15, 10.5, 11.5]),
+    ("MET_pt", "MET_pt > 40", [46.5, 82.0]),
+    ("Jet_pt", "Jet_pt > 40", [42.0, 50.0]),
+    ("MET_pt", "", [46.5, 30.0, 82.0, 8.9]),
+    ("Jet_pt", "", [42.0, 15.0, 10.5, 11.5, 50.0, 5.0]),
+    ("Jet_eta + 1", "Jet_pt > 40 and MET_pt > 40", [-1.2]),
+    ("Jet_eta", "Jet_pt > 40 and MET_pt > 40", [-2.2]),
+    ("sum(Jet_pt)", "MET_pt < 10", [50 + 5]),
+    ("length(Jet_pt)", "MET_pt < 10", [2]),
+    ("length(Jet_pt)", "", [3, 0, 1, 2]),
+    ("mean(Jet_pt)", "", [1.0 / 3 * (42 + 15 + 10.5), 11.5, 0.5 * (50 + 5)]),
+    ("min(Jet_pt)", "", [10.5, 11.5, 5.0]),
+    ("max(abs(Jet_eta))", "MET_pt > 80", [1.5]),
+    ("max(abs(Jet_eta))", "", [2.2, 1.5, 3.0]),
+    ("Jet_pt[0]:Jet_pt[1]", "MET_pt > 40", [[42, 15]]),
+    ("Jet_pt[0]:Jet_pt[1]", "", [[42, 15], [50, 5]]),
+    ("Jet_pt[2]", "", [10.5]),
+    ("Jet_pt[Jet_pt>25]", "", [42, 50]),
+    ("sum(Jet_pt[abs(Jet_eta)<2.0])", "", [15 + 10.5, 0.0, 11.5, 50.0]),
+    ("sum(Jet_pt>10)", "MET_pt>40", [3, 1]),
+    ("np.exp(sum(Jet_pt>10))", "MET_pt>40", [np.exp(3), np.exp(1)]),
+    ("Jet_pt", "(14. < Jet_pt) & (Jet_pt < 16.)", [15]),
+    ("Jet_pt", "(14. < Jet_pt) and (Jet_pt < 16.)", [15]),
+    ("Jet_pt", "(14. < Jet_pt < 16.)", [15]),
+    ("not MET_pt>40", "", [False, True, False, True]),
+    ("Jet_pt", "~(14. < Jet_pt < 16.)", [42, 10.5, 11.5, 50, 5]),
+    ("Jet_pt", "not(14. < Jet_pt < 16.)", [42, 10.5, 11.5, 50, 5]),
+    ("(MET_pt>30) and True", "", [True, False, True, False]),
+    ("(MET_pt>30) or True", "", [True, True, True, True]),
+    ("(MET_pt>30) and False", "", [False, False, False, False]),
+    ("(MET_pt>30) or False", "", [True, False, True, False]),
+    ("length(Jet_pt) == 2 and sum(Jet_pt) > 40", "", [False, False, False, True]),
+    ("sum(Jet_pt[(Jet_pt>40) and abs(Jet_eta)<2.4])", "MET_pt > 40", [42, 0]),
+    ("sum(Jet_pt[(Jet_pt>40) and abs(Jet_eta)<2.4])", "", [42, 0, 0, 50]),
+    ("sum(Jet_pt[2:3])", "MET_pt > 40", [10.5, 0.0]),
+    ("sum(Jet_pt[:2])", "", [42 + 15, 0, 11.5, 50 + 5]),
+    ("Jet_pt[Jet_pt>40][0] + Jet_eta[2]", "", [42.5]),
+    ("min(min(Jet_pt), min(Jet_eta))", "MET_pt > 40", [-2.2, 1.5]),
+    ("min(min(Jet_pt), min(Jet_eta))", "", [-2.2, 1.5, -3]),
+    ("max(min(Jet_pt), min(Jet_eta))", "", [10.5, 11.5, 5]),
+    ("min(MET_pt, MET_pt+1)", "", [46.5, 30, 82, 8.9]),
+    ("max(MET_pt, MET_pt+1)", "", [47.5, 31, 83, 9.9]),
+    ("max(min(Jet_pt), MET_pt*2)", "", [93, 164, 17.8]),
+    (
+        "Jet_pt:Jet_eta",
+        "MET_pt > 40.",
+        [[42, -2.2], [15, 0.4], [10.5, 0.5], [11.5, 1.5]],
+    ),
+    (
+        "(MET_pt>40) and sum((Jet_pt>40) and (abs(Jet_eta)<2.4)) >= 1",
+        "",
+        [True, False, False, False],
+    ),
+]
+
+
+@pytest.mark.parametrize("varexp,sel,expected", cases)
 def test_draw(df_jagged, varexp, sel, expected):
-    x = tree_draw_to_array(df_jagged, varexp, sel)
+    x = tree_draw(df_jagged, varexp, sel, to_array=True)
     x = np.array(x)
     y = np.array(expected)
     np.testing.assert_allclose(x, y)
+
 
 if __name__ == "__main__":
     pytest.main(["--capture=no", __file__])
