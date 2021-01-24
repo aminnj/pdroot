@@ -20,6 +20,7 @@ import fletcher
 def array_to_fletcher_or_numpy(array):
     if array.ndim >= 2:
         return fletcher.FletcherContinuousArray(awkward1.to_arrow(array))
+        # return fletcher.FletcherChunkedArray(awkward1.to_arrow(array))
     else:
         a = array.layout
         if hasattr(a, "content"):
@@ -216,3 +217,8 @@ class ChunkDataFrame(pd.DataFrame):
     def __getitem__(self, key):
         self._possibly_cache(key)
         return super().__getitem__(key)
+
+    # # Messes up notebook repr for some reason
+    # def __getattr__(self, name):
+    #     self._possibly_cache(name)
+    #     return super().__getattr__(name)

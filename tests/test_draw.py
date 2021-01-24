@@ -1,4 +1,4 @@
-from pdroot.draw import tree_draw
+from pdroot.draw import tree_draw, iter_draw
 from pdroot.readwrite import awkward1_arrays_to_dataframe
 
 import numpy as np
@@ -167,6 +167,15 @@ def test_draw(df_jagged, varexp, sel, expected):
     y = np.array(expected)
     np.testing.assert_allclose(x, y)
 
+def test_iterdraw():
+    treename = "tree"
+    filename = ".test.root"
+    varexp = "a"
+    sel = "b>c"
+    df = pd.DataFrame(np.random.normal(0, 1, (1000, 4)), columns=list("abcd"))
+    df.to_root(filename, treename=treename)
+    h = iter_draw(filename, varexp, sel=sel, treename=treename, step_size=500, progress=False)
+    assert h.integral == df.eval(sel).sum()
 
 if __name__ == "__main__":
     pytest.main(["--capture=no", __file__])

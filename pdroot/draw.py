@@ -14,6 +14,7 @@ warnings.resetwarnings()
 
 from yahist import Hist1D, Hist2D
 
+from .readwrite import awkward1_arrays_to_dataframe
 from .parse import variables_in_expr, to_ak_expr, split_expr_on_free_colon
 
 
@@ -102,39 +103,48 @@ def tree_draw_to_array(df, varexp, sel=""):
 
 
 def iter_draw(
-    path, varexp, sel="", treepath="t", progress=False, entrysteps="50MB", **kwargs
+    path,
+    varexp,
+    sel="",
+    treename="t",
+    bins=None,
+    progress=True,
+    step_size="50MB",
+    **kwargs,
 ):
     """
-    Same as `tree_draw`, except this requires an additional first argument for the path/pattern
-    of input root files. Tree name is specified via `treepath`.
-    Iterates over the files in chunks of `entrysteps` (as per `uproot.iterate`), reading
-    only the branches deemed necessary according to `variables_in_expr`.
+    Loop over specified ROOT files in `path` in chunks, making histograms and returning their sum.
+    Tree name is specified via `treename`.
+    Iterates over the files in chunks of `step_size` (as per `uproot4.iterate`), reading
+    only the branches deemed necessary according to `pdroot.parse.variables_in_expr`.
     """
-    hists = []
-    t0 = time.time()
-    nevents = 0
-    edges = None
-    branches = variables_in_expr(varexp + ":" + sel)
-    iterable = enumerate(
-        uproot3.iterate(
-            path,
-            treepath=treepath,
-            entrysteps=entrysteps,
-            branches=branches,
-            namedecode="ascii",
-            outputtype=pd.DataFrame,
-        )
-    )
+    varexp_exprs = [to_ak_expr(expr) for expr in split_expr_on_free_colon(varexp)]
+    sel_expr = to_ak_expr(sel)
+    colnames = variables_in_expr(f"{varexp}${sel}")
+
+    opts = dict()
+    if bins:
+        opts["bins"] = bins
+    opts.update(kwargs)
+
+    if ":" not in path:
+        path = f"{path}:{treename}"
+    iterable = uproot4.iterate(path, expressions=colnames, step_size=step_size)
+
     if progress:
         from tqdm.auto import tqdm
 
         iterable = tqdm(iterable)
-    for i, df in iterable:
+
+    t0 = time.time()
+    hists = []
+    nevents = 0
+    for arrays in iterable:
+        df = awkward1_arrays_to_dataframe(arrays)
         nevents += len(df)
-        if i >= 1 and "bins" not in kwargs:
-            kwargs["bins"] = edges
-        h = df.draw(varexp, sel, **kwargs)
-        edges = h.edges
+        h = df.draw(varexp, sel, **opts)
+        if "bins" not in opts:
+            opts["bins"] = h.edges
         hists.append(h)
     h = sum(hists)
     t1 = time.time()
