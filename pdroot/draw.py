@@ -18,6 +18,12 @@ from .readwrite import awkward1_arrays_to_dataframe
 from .parse import variables_in_expr, to_ak_expr, split_expr_on_free_colon
 
 
+def array_ndim(array):
+    if hasattr(array, "ndim"):
+        return array.ndim
+    return np.ndim(array)
+
+
 def tree_draw(df, varexp, sel="", to_array=False, **kwargs):
     """
     1d and 2d drawing function that supports jagged columns
@@ -53,10 +59,14 @@ def tree_draw_to_array(df, varexp, sel=""):
     for expr in varexp_exprs:
         vals = eval(expr)
 
+        # if varexp is a simple constant, broadcast it to an array
+        if array_ndim(vals) == 0:
+            vals = vals * np.ones(len(df))
+
         if sel:
             vals = vals[globalmask]
 
-        if vals.ndim > 1:
+        if array_ndim(vals) > 1:
             vals = awkward1.flatten(vals)
 
         vals = awkward1.to_numpy(vals)

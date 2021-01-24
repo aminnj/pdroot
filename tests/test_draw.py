@@ -147,6 +147,9 @@ cases = [
     ("min(MET_pt, MET_pt+1)", "", [46.5, 30, 82, 8.9]),
     ("max(MET_pt, MET_pt+1)", "", [47.5, 31, 83, 9.9]),
     ("max(min(Jet_pt), MET_pt*2)", "", [93, 164, 17.8]),
+    ("10*(1>0) + MET_pt", "MET_pt>40", [56.5, 92]),
+    ("1", "MET_pt>40", [1, 1]),
+    ("10", "", [10, 10, 10, 10]),
     (
         "Jet_pt:Jet_eta",
         "MET_pt > 40.",
@@ -167,6 +170,7 @@ def test_draw(df_jagged, varexp, sel, expected):
     y = np.array(expected)
     np.testing.assert_allclose(x, y)
 
+
 def test_iterdraw():
     treename = "tree"
     filename = ".test.root"
@@ -174,8 +178,11 @@ def test_iterdraw():
     sel = "b>c"
     df = pd.DataFrame(np.random.normal(0, 1, (1000, 4)), columns=list("abcd"))
     df.to_root(filename, treename=treename)
-    h = iter_draw(filename, varexp, sel=sel, treename=treename, step_size=500, progress=False)
+    h = iter_draw(
+        filename, varexp, sel=sel, treename=treename, step_size=500, progress=False
+    )
     assert h.integral == df.eval(sel).sum()
+
 
 if __name__ == "__main__":
     pytest.main(["--capture=no", __file__])
