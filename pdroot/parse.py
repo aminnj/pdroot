@@ -44,32 +44,6 @@ def variables_in_expr(expr, exclude=RESERVED_TOKENS, include=[]):
     return varnames
 
 
-def sandwich_vars_in_expr(expr, prefix="", suffix=""):
-    """
-    prepends `prefix`, and appends `suffix`
-    to variables in an expression string
-    """
-
-    varnames = []
-    g = list(tokenize(BytesIO(expr.encode("utf-8")).readline))
-    buff = ""
-    varnames = []
-    for ix, x in enumerate(g):
-        toknum, tokval = x[:2]
-        if toknum in [ENCODING]:
-            continue
-        if toknum != NAME:
-            buff += tokval
-            continue
-        if tokval in ["and", "or", "abs", "max", "min", "sum"]:
-            buff += f" {tokval} "
-            continue
-        else:
-            buff += f"{prefix}{tokval}{suffix}"
-        varnames.append(tokval)
-    return buff, varnames
-
-
 class Transformer(ast.NodeTransformer):
     def __init__(self, aliases=dict()):
         self.aliases = aliases

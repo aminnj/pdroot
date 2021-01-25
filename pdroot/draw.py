@@ -97,6 +97,7 @@ def _tree_draw_to_array(df, varexp, sel=""):
 
     return vals
 
+
 def tree_draw(df, varexp, sel="", to_array=False, **kwargs):
     """
     1d and 2d drawing function that supports jagged columns
@@ -109,7 +110,6 @@ def tree_draw(df, varexp, sel="", to_array=False, **kwargs):
         return Hist1D(array, **kwargs)
     elif np.ndim(array) == 2:
         return Hist2D(array, **kwargs)
-
 
 
 def iter_draw(

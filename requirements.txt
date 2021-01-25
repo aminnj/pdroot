@@ -10,7 +10,6 @@ awkward1
 awkward>=1.0.2
 fletcher
 pyarrow
-numba
 pandas
 yahist
 tqdm

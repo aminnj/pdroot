@@ -66,27 +66,6 @@ def test_pandas_injection(df_flat):
     assert h.integral == 1000.0
 
 
-@pytest.mark.filterwarnings("ignore:numpy.ufunc size changed")
-def test_jitdraw_1d(df_flat):
-    df = df_flat
-    bins = np.linspace(0, 2, 11)
-
-    # one function, has jit cost
-    c1 = df.jitdraw("a", "b>0.5", bins=bins).counts
-    c2, _ = np.histogram(df["a"][df["b"] > 0.5], bins=bins)
-    np.testing.assert_allclose(c1, c2)
-
-    # different function
-    c1 = df.jitdraw("b", "c>0.5", bins=bins).counts
-    c2, _ = np.histogram(df["b"][df["c"] > 0.5], bins=bins)
-    np.testing.assert_allclose(c1, c2)
-
-    # first function, no jit cost
-    c1 = df.jitdraw("a", "b>0.5", bins=bins).counts
-    c2, _ = np.histogram(df["a"][df["b"] > 0.5], bins=bins)
-    np.testing.assert_allclose(c1, c2)
-
-
 def test_draw_to_hist1d(df_jagged):
     df = df_jagged
     assert df.draw("Jet_pt").integral == 6
@@ -169,6 +148,7 @@ def test_draw(df_jagged, varexp, sel, expected):
     x = np.array(x)
     y = np.array(expected)
     np.testing.assert_allclose(x, y)
+
 
 # def test_aliases(df_jagged):
 #     df = df_jagged
