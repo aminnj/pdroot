@@ -170,6 +170,16 @@ def test_draw(df_jagged, varexp, sel, expected):
     y = np.array(expected)
     np.testing.assert_allclose(x, y)
 
+# def test_aliases(df_jagged):
+#     df = df_jagged
+#     x = df.draw("sum((Jet_pt>40) and abs(Jet_eta)<2.4)", "MET_pt>40", to_array=True)
+#     aliases = {
+#             "njets": "sum((Jet_pt>40) and abs(Jet_eta)<2.4)",
+#             "highmet": "MET_pt>40",
+#             }
+#     y = df.draw("njets", "highmet", aliases=aliases, to_array=True)
+#     np.testing.assert_allclose(x, y)
+
 
 def test_iterdraw():
     treename = "tree"

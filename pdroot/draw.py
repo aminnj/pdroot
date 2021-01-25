@@ -18,27 +18,13 @@ from .readwrite import awkward1_arrays_to_dataframe
 from .parse import variables_in_expr, to_ak_expr, split_expr_on_free_colon
 
 
-def array_ndim(array):
+def _array_ndim(array):
     if hasattr(array, "ndim"):
         return array.ndim
     return np.ndim(array)
 
 
-def tree_draw(df, varexp, sel="", to_array=False, **kwargs):
-    """
-    1d and 2d drawing function that supports jagged columns
-    returns hist
-    """
-    array = tree_draw_to_array(df, varexp, sel)
-    if to_array:
-        return array
-    if np.ndim(array) == 1:
-        return Hist1D(array, **kwargs)
-    elif np.ndim(array) == 2:
-        return Hist2D(array, **kwargs)
-
-
-def tree_draw_to_array(df, varexp, sel=""):
+def _tree_draw_to_array(df, varexp, sel=""):
     """
     1d and 2d drawing function that supports jagged columns
     returns array
@@ -60,13 +46,13 @@ def tree_draw_to_array(df, varexp, sel=""):
         vals = eval(expr)
 
         # if varexp is a simple constant, broadcast it to an array
-        if array_ndim(vals) == 0:
+        if _array_ndim(vals) == 0:
             vals = vals * np.ones(len(df))
 
         if sel:
             vals = vals[globalmask]
 
-        if array_ndim(vals) > 1:
+        if _array_ndim(vals) > 1:
             vals = awkward1.flatten(vals)
 
         vals = awkward1.to_numpy(vals)
@@ -110,6 +96,20 @@ def tree_draw_to_array(df, varexp, sel=""):
         vals = np.c_[x, y]
 
     return vals
+
+def tree_draw(df, varexp, sel="", to_array=False, **kwargs):
+    """
+    1d and 2d drawing function that supports jagged columns
+    returns hist
+    """
+    array = _tree_draw_to_array(df, varexp, sel)
+    if to_array:
+        return array
+    if np.ndim(array) == 1:
+        return Hist1D(array, **kwargs)
+    elif np.ndim(array) == 2:
+        return Hist2D(array, **kwargs)
+
 
 
 def iter_draw(

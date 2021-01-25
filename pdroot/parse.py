@@ -71,6 +71,15 @@ def sandwich_vars_in_expr(expr, prefix="", suffix=""):
 
 
 class Transformer(ast.NodeTransformer):
+    def __init__(self, aliases=dict()):
+        self.aliases = aliases
+
+    def visit_Name(self, node):
+        if node.id in self.aliases:
+            node = self.visit(ast.parse(self.aliases[node.id]))
+            return node
+        self.generic_visit(node)
+        return node
 
     # "and" -> "&"
     def visit_And(self, node):
@@ -122,7 +131,7 @@ class Transformer(ast.NodeTransformer):
         self.generic_visit(node)
         return node
 
-    # "x[2]" -> "ak.pad_none(x, 3)[:, 2]"
+    # "x[2]" -> "ak.pad_none(x, 3, clip=True)[:, 2]"
     def visit_Subscript(self, node):
         valid_slice = False
         s = node.slice
@@ -141,7 +150,7 @@ class Transformer(ast.NodeTransformer):
             value = ast.Call(
                 func=ast.Name("ak.pad_none"),
                 args=[node.value, ast.Constant(upper + 1)],
-                keywords=[],
+                keywords=[ast.keyword("clip", ast.Constant(True))],
             )
             node = ast.Subscript(
                 value=value,
@@ -154,13 +163,14 @@ class Transformer(ast.NodeTransformer):
         return node
 
 
-def to_ak_expr(expr, transformer=Transformer()):
+def to_ak_expr(expr, aliases=dict(), transformer=Transformer()):
     """
     turns 
         expr = "sum(Jet_pt[abs(Jet_eta)>4.])"
     into 
         expr = "ak.sum(Jet_pt[abs(Jet_eta) > 4.0], axis=-1)"
     """
+    transformer.aliases = aliases
     parsed = ast.parse(expr)
     transformer.visit(parsed)
     source = astor.to_source(parsed).strip()
