@@ -18,14 +18,16 @@ import fletcher
 
 
 def array_to_fletcher_or_numpy(array):
-    if array.ndim >= 2:
-        return fletcher.FletcherContinuousArray(awkward1.to_arrow(array))
-        # return fletcher.FletcherChunkedArray(awkward1.to_arrow(array))
-    else:
+    arrow_array = awkward1.to_arrow(array)
+    fletcher_array = fletcher.FletcherContinuousArray(awkward1.to_arrow(array))
+    if (array.ndim >= 2) or (fletcher_array.data.null_count > 0):
+        return fletcher_array
+    if "list<" not in str(fletcher_array.dtype):
         a = array.layout
         if hasattr(a, "content"):
             a = a.content
         return np.array(a, copy=False)
+    return fletcher_array
 
 
 def awkward1_arrays_to_dataframe(arrays):
