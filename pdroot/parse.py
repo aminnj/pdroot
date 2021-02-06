@@ -10,10 +10,14 @@ RESERVED_TOKENS = [
     "abs",
     "max",
     "min",
+    "argmax",
+    "argmin",
+    "axis",
     "sum",
     "mean",
     "not",
     "length",
+    "len",
     "True",
     "False",
 ]
@@ -47,6 +51,7 @@ def variables_in_expr(expr, exclude=RESERVED_TOKENS, include=[]):
 class Transformer(ast.NodeTransformer):
     def __init__(self, aliases=dict()):
         self.aliases = aliases
+        self.nreducers = 0
 
     def visit_Name(self, node):
         if node.id in self.aliases:
@@ -87,15 +92,26 @@ class Transformer(ast.NodeTransformer):
         return node
 
     # "min(x)" -> "ak.min(x, axis=-1)"
+    # "min(x,y)" -> "np.minimum(x,y)"
     def visit_Call(self, node):
         if hasattr(node.func, "id"):
             name = node.func.id
-            if name in ["min", "max", "sum", "mean", "length"]:
+            if name in [
+                "min",
+                "max",
+                "sum",
+                "mean",
+                "length",
+                "len",
+                "argmin",
+                "argmax",
+            ]:
                 if len(node.args) == 1:
-                    if name == "length":
+                    if name in ["length", "len"]:
                         node.func.id = "count"
                     node.func.id = "ak." + node.func.id
                     node.keywords.append(ast.keyword("axis", ast.Constant(-1)))
+                    self.nreducers += 1
                 elif (len(node.args) == 2) and name in ["min", "max"]:
                     node.func.id = {"min": "np.minimum", "max": "np.maximum"}[name]
                 else:
@@ -116,6 +132,7 @@ class Transformer(ast.NodeTransformer):
             if hasattr(s, "value"):
                 upper = s.value.n
                 dimslice = ast.Constant(upper)
+                self.nreducers += 1
             elif hasattr(s, "upper"):
                 upper = s.upper.n
                 dimslice = s
@@ -133,6 +150,14 @@ class Transformer(ast.NodeTransformer):
                 ),
                 ctx=ast.Load(),
             )
+        else:
+            # for when an index array is used as a slice
+            # currently will only work if that array has a None
+            # (https://github.com/scikit-hep/awkward-1.0/issues/708)
+            new_slice = ast.Call(
+                func=ast.Name("ak.singletons"), args=[node.slice], keywords=[],
+            )
+            node = ast.Subscript(value=node.value, slice=new_slice, ctx=ast.Load())
         self.generic_visit(node)
         return node
 

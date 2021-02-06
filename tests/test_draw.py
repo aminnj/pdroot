@@ -25,6 +25,7 @@ def df_jagged():
             Jet_pt=[[42.0, 15.0, 10.5], [], [11.5], [50.0, 5.0]],
             Jet_eta=[[-2.2, 0.4, 0.5], [], [1.5], [-0.1, -3.0]],
             MET_pt=[46.5, 30.0, 82.0, 8.9],
+            Jet_bestidx=[2, None, 0, 1],
         )
     )
     # For ease of visualization:
@@ -91,6 +92,7 @@ cases = [
     ("Jet_eta", "Jet_pt > 40 and MET_pt > 40", [-2.2]),
     ("sum(Jet_pt)", "MET_pt < 10", [50 + 5]),
     ("length(Jet_pt)", "MET_pt < 10", [2]),
+    ("len(Jet_pt)", "MET_pt < 10", [2]),
     ("length(Jet_pt)", "", [3, 0, 1, 2]),
     ("mean(Jet_pt)", "", [1.0 / 3 * (42 + 15 + 10.5), 11.5, 0.5 * (50 + 5)]),
     ("min(Jet_pt)", "", [10.5, 11.5, 5.0]),
@@ -114,6 +116,7 @@ cases = [
     ("(MET_pt>30) and False", "", [False, False, False, False]),
     ("(MET_pt>30) or False", "", [True, False, True, False]),
     ("length(Jet_pt) == 2 and sum(Jet_pt) > 40", "", [False, False, False, True]),
+    ("len(Jet_pt) == 2 and sum(Jet_pt) > 40", "", [False, False, False, True]),
     ("sum(Jet_pt[(Jet_pt>40) and abs(Jet_eta)<2.4])", "MET_pt > 40", [42, 0]),
     ("sum(Jet_pt[(Jet_pt>40) and abs(Jet_eta)<2.4])", "", [42, 0, 0, 50]),
     ("sum(Jet_pt[2:3])", "MET_pt > 40", [10.5, 0.0]),
@@ -129,6 +132,9 @@ cases = [
     ("10*(1>0) + MET_pt", "MET_pt>40", [56.5, 92]),
     ("1", "MET_pt>40", [1, 1]),
     ("10", "", [10, 10, 10, 10]),
+    ("Jet_pt[Jet_bestidx]", "length(Jet_pt)>0", [10.5, 11.5, 5]),
+    ("Jet_eta[argmin(Jet_pt)]", "", [0.5, 1.5, -3.0]),
+    ("Jet_eta[argmax(2*Jet_pt)]", "", [-2.2, 1.5, -0.1]),
     (
         "Jet_pt:Jet_eta",
         "MET_pt > 40.",

@@ -10,6 +10,8 @@ import uproot4
 
 import awkward1
 
+from tqdm.auto import tqdm
+
 warnings.resetwarnings()
 
 from yahist import Hist1D, Hist2D
@@ -34,16 +36,16 @@ def _tree_draw_to_array(df, varexp, sel=""):
     sel_expr = to_ak_expr(sel)
 
     colnames = variables_in_expr(f"{varexp}${sel}")
+    loc = {"ak": awkward1, "np": np, "pd": pd}
     for colname in colnames:
-        locals()[colname] = df[colname].ak(1)
-    locals()["ak"] = awkward1
+        loc[colname] = df[colname].ak(1)
 
     if sel:
-        globalmask = eval(sel_expr)
+        globalmask = eval(sel_expr, dict(), loc)
 
     dims = []
     for expr in varexp_exprs:
-        vals = eval(expr)
+        vals = eval(expr, dict(), loc)
 
         # if varexp is a simple constant, broadcast it to an array
         if _array_ndim(vals) == 0:
@@ -128,8 +130,6 @@ def iter_draw(
     Iterates over the files in chunks of `step_size` (as per `uproot4.iterate`), reading
     only the branches deemed necessary according to `pdroot.parse.variables_in_expr`.
     """
-    varexp_exprs = [to_ak_expr(expr) for expr in split_expr_on_free_colon(varexp)]
-    sel_expr = to_ak_expr(sel)
     colnames = variables_in_expr(f"{varexp}${sel}")
 
     opts = dict()
@@ -142,8 +142,6 @@ def iter_draw(
     iterable = uproot4.iterate(path, expressions=colnames, step_size=step_size)
 
     if progress:
-        from tqdm.auto import tqdm
-
         iterable = tqdm(iterable)
 
     t0 = time.time()

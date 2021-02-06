@@ -70,10 +70,13 @@ Provided four component branches (`*_{pt,eta,phi,mass}`) are in the dataframe, o
 
 Drawing from a DataFrame handles jagged columns via [awkward-array](https://github.com/scikit-hep/awkward-1.0) and AST transformations.
 ```python
-# supports reduction operators (ROOT's Length$ -> length, etc)
+# supports reduction operators:
+#    min/max/sum/mean/length/len/argmin/margmax
+#    (ROOT's Length$ -> length, etc)
 df.draw("length(Jet_pt)")
 df.draw("sum(Jet_pt>10)", "MET_pt>40", bins="5,-0.5,4.5")
 df.draw("max(abs(Jet_eta))")
+df.draw("Jet_eta[argmax(Jet_pt)]")
 
 # combine event-level and object-level selection
 df.draw("Jet_pt", "abs(Jet_eta) > 1.0 and MET_pt > 10")
