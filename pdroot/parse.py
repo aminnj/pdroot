@@ -125,6 +125,21 @@ class Transformer(ast.NodeTransformer):
     def visit_Subscript(self, node):
         valid_slice = False
         s = node.slice
+
+        # if the slice is a negative number, then convert it into a simpler form
+        # so that it can be subsequently parsed the same way as positive numbers
+        if hasattr(s, "value") and isinstance(s.value, ast.UnaryOp):
+            if isinstance(s.value.op, ast.USub) and isinstance(
+                s.value.operand, ast.Num
+            ):
+                n = -s.value.operand.n
+                if n != -1:
+                    raise Exception(
+                        f"Negative index `{n}` not supported. "
+                        "Only -1 supported, due to ak.pad_none() padding the end of an array."
+                    )
+                s = ast.Index(value=ast.Num(n))
+
         for attr in ["value", "upper", "lower", "step"]:
             if isinstance(getattr(s, attr, None), (ast.Constant, ast.Num)):
                 valid_slice = True
@@ -138,10 +153,17 @@ class Transformer(ast.NodeTransformer):
                 dimslice = s
             else:
                 raise Exception(f"Slice node not supported: {s}")
+            absupper = abs(upper)
+            if upper >= 0:
+                clip = True
+                absupper = ast.Constant(absupper + 1)
+            else:
+                clip = False
+                absupper = ast.Constant(absupper)
             value = ast.Call(
                 func=ast.Name("ak.pad_none"),
-                args=[node.value, ast.Constant(upper + 1)],
-                keywords=[ast.keyword("clip", ast.Constant(True))],
+                args=[node.value, absupper],
+                keywords=[ast.keyword("clip", ast.Constant(clip))],
             )
             node = ast.Subscript(
                 value=value,
