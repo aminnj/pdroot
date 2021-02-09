@@ -25,7 +25,7 @@ def df_jagged():
             Jet_pt=[[42.0, 15.0, 10.5], [], [11.5], [50.0, 5.0]],
             Jet_eta=[[-2.2, 0.4, 0.5], [], [1.5], [-0.1, -3.0]],
             MET_pt=[46.5, 30.0, 82.0, 8.9],
-            Jet_bestidx=[2, None, 0, 1],
+            # Jet_bestidx=[2, None, 0, 1],
         )
     )
     # For ease of visualization:
@@ -133,7 +133,7 @@ cases = [
     ("10*(1>0) + MET_pt", "MET_pt>40", [56.5, 92]),
     ("1", "MET_pt>40", [1, 1]),
     ("10", "", [10, 10, 10, 10]),
-    ("Jet_pt[Jet_bestidx]", "length(Jet_pt)>0", [10.5, 11.5, 5]),
+    # ("Jet_pt[Jet_bestidx]", "length(Jet_pt)>0", [10.5, 11.5, 5]),
     ("Jet_eta[argmin(Jet_pt)]", "", [0.5, 1.5, -3.0]),
     ("Jet_eta[argmax(2*Jet_pt)]", "", [-2.2, 1.5, -0.1]),
     (

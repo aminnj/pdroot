@@ -111,6 +111,8 @@ class Transformer(ast.NodeTransformer):
                         node.func.id = "count"
                     node.func.id = "ak." + node.func.id
                     node.keywords.append(ast.keyword("axis", ast.Constant(-1)))
+                    if name in ["argmin", "argmax"]:
+                        node.keywords.append(ast.keyword("keepdims", ast.Constant(True)))
                     self.nreducers += 1
                 elif (len(node.args) == 2) and name in ["min", "max"]:
                     node.func.id = {"min": "np.minimum", "max": "np.maximum"}[name]
@@ -172,14 +174,14 @@ class Transformer(ast.NodeTransformer):
                 ),
                 ctx=ast.Load(),
             )
-        else:
-            # for when an index array is used as a slice
-            # currently will only work if that array has a None
-            # (https://github.com/scikit-hep/awkward-1.0/issues/708)
-            new_slice = ast.Call(
-                func=ast.Name("ak.singletons"), args=[node.slice], keywords=[],
-            )
-            node = ast.Subscript(value=node.value, slice=new_slice, ctx=ast.Load())
+        # else:
+        #     # for when an index array is used as a slice
+        #     # currently will only work if that array has a None
+        #     # (https://github.com/scikit-hep/awkward-1.0/issues/708)
+        #     new_slice = ast.Call(
+        #         func=ast.Name("ak.singletons"), args=[node.slice], keywords=[],
+        #     )
+        #     node = ast.Subscript(value=node.value, slice=new_slice, ctx=ast.Load())
         self.generic_visit(node)
         return node
 
