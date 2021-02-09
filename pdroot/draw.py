@@ -26,16 +26,17 @@ def _array_ndim(array):
     return np.ndim(array)
 
 
-def _tree_draw_to_array(df, varexp, sel=""):
+def _tree_draw_to_array(df, varexp, sel="", weights=""):
     """
     1d and 2d drawing function that supports jagged columns
     returns array
     """
 
     varexp_exprs = [to_ak_expr(expr) for expr in split_expr_on_free_colon(varexp)]
+    weights_expr = to_ak_expr(weights)
     sel_expr = to_ak_expr(sel)
 
-    colnames = variables_in_expr(f"{varexp}${sel}")
+    colnames = variables_in_expr(f"{varexp}${sel}${weights}")
     loc = {"ak": awkward1, "np": np, "pd": pd}
     for colname in colnames:
         loc[colname] = df[colname].ak(1)
@@ -43,8 +44,9 @@ def _tree_draw_to_array(df, varexp, sel=""):
     if sel:
         globalmask = eval(sel_expr, dict(), loc)
 
-    dims = []
-    for expr in varexp_exprs:
+    vweights = None
+
+    def expr_to_vals(expr):
         vals = eval(expr, dict(), loc)
 
         # if varexp is a simple constant, broadcast it to an array
@@ -58,7 +60,15 @@ def _tree_draw_to_array(df, varexp, sel=""):
             vals = awkward1.flatten(vals)
 
         vals = awkward1.to_numpy(vals)
+        return vals
+
+    dims = []
+    for expr in varexp_exprs:
+        vals = expr_to_vals(expr)
         dims.append(vals)
+
+    if weights:
+        vweights = expr_to_vals(weights_expr)
 
     def has_mask(vals):
         if isinstance(vals, np.ma.masked_array) or (
@@ -69,14 +79,18 @@ def _tree_draw_to_array(df, varexp, sel=""):
         return False
 
     if len(dims) == 1:
-
-        vals = dims[0]
-        if has_mask(vals):
-            mask = vals.mask
+        x = dims[0]
+        if has_mask(x):
+            mask = x.mask
             if np.ndim(mask) != 0:
-                vals = vals.data[~mask]
+                x = x.data[~mask]
+                if weights:
+                    vweights = vweights.data[~mask]
             else:
-                vals = vals.data
+                x = x.data
+                if weights:
+                    vweights = vweights.data
+            vals = x
 
     # could be simplified
     # if one of the dimensions has a mask, we want to apply the OR
@@ -89,25 +103,35 @@ def _tree_draw_to_array(df, varexp, sel=""):
             mask = x.mask | y.mask
             x = x.data[~mask]
             y = y.data[~mask]
+            if weights:
+                vweights = vweights.data[~mask]
         else:
             if has_mask(x):
                 x = x.data
             if has_mask(y):
                 y = y.data
+            if weights:
+                if has_mask(vweights):
+                    vweights = vweights.data
 
         vals = np.c_[x, y]
 
-    return vals
+    return vals, vweights
 
 
-def tree_draw(df, varexp, sel="", to_array=False, **kwargs):
+def tree_draw(df, varexp, sel="", weights="", to_array=False, **kwargs):
     """
     1d and 2d drawing function that supports jagged columns
     returns hist
     """
-    array = _tree_draw_to_array(df, varexp, sel)
+    array, vweights = _tree_draw_to_array(df, varexp, sel, weights)
     if to_array:
+        if weights:
+            return array, vweights
         return array
+
+    if weights:
+        kwargs["weights"] = vweights
     if np.ndim(array) == 1:
         return Hist1D(array, **kwargs)
     elif np.ndim(array) == 2:

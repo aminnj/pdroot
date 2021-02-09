@@ -25,17 +25,18 @@ def df_jagged():
             Jet_pt=[[42.0, 15.0, 10.5], [], [11.5], [50.0, 5.0]],
             Jet_eta=[[-2.2, 0.4, 0.5], [], [1.5], [-0.1, -3.0]],
             MET_pt=[46.5, 30.0, 82.0, 8.9],
+            eventWeight=[-1., 0., 2.0, 2.0],
             # Jet_bestidx=[2, None, 0, 1],
         )
     )
     # For ease of visualization:
     """
-    |    | Jet_pt           | Jet_eta          |   MET_pt |
-    |----|------------------|------------------|----------|
-    |  0 | [42.  15.  10.5] | [-2.2  0.4  0.5] |     46.5 |
-    |  1 | []               | []               |     30   |
-    |  2 | [11.5]           | [1.5]            |     82   |
-    |  3 | [50.  5.]        | [-0.1 -3. ]      |      8.9 |
+    |    | Jet_pt           | Jet_eta          |   MET_pt | eventWeight |
+    |----|------------------|------------------|----------|-------------|
+    |  0 | [42.  15.  10.5] | [-2.2  0.4  0.5] |     46.5 |        -1.0 |
+    |  1 | []               | []               |     30   |         0.0 |
+    |  2 | [11.5]           | [1.5]            |     82   |         2.0 |
+    |  3 | [50.  5.]        | [-0.1 -3. ]      |      8.9 |         2.0 |
     """
     return awkward1_arrays_to_dataframe(a)
 
@@ -80,7 +81,7 @@ def test_draw_to_hist2d(df_jagged):
     assert h.integral == 4
 
 
-cases = [
+cases_noweights = [
     ("Jet_pt", "", [42.0, 15.0, 10.5, 11.5, 50.0, 5.0]),
     ("Jet_pt", "abs(Jet_eta) > 1 and MET_pt > 10", [42.0, 11.5]),
     ("Jet_pt", "MET_pt > 40", [42, 15, 10.5, 11.5]),
@@ -149,12 +150,30 @@ cases = [
 ]
 
 
-@pytest.mark.parametrize("varexp,sel,expected", cases)
+@pytest.mark.parametrize("varexp,sel,expected", cases_noweights)
 def test_draw(df_jagged, varexp, sel, expected):
     x = tree_draw(df_jagged, varexp, sel, to_array=True)
     x = np.array(x)
     y = np.array(expected)
     np.testing.assert_allclose(x, y)
+
+cases_weights = [
+    ("Jet_pt", "", "Jet_pt", [42.0, 15.0, 10.5, 11.5, 50.0, 5.0], [42.0, 15.0, 10.5, 11.5, 50.0, 5.0]),
+    ("Jet_pt", "abs(Jet_eta) > 1 and MET_pt > 10", "Jet_eta*2", [42.0, 11.5], [-4.4, 3.0]),
+    ("MET_pt", "MET_pt > 40", "eventWeight", [46.5, 82], [-1, 2]),
+    ("length(Jet_pt)", "", "eventWeight", [3, 0, 1, 2], [-1, 0, 2, 2]),
+    ("length(Jet_pt)", "MET_pt < 10", "eventWeight", [2], [2]),
+]
+
+
+@pytest.mark.parametrize("varexp,sel,weights,expected,expectedweights", cases_weights)
+def test_draw_weights(df_jagged, varexp, sel, weights, expected, expectedweights):
+    x, vweights = tree_draw(df_jagged, varexp, sel, weights, to_array=True)
+    x = np.array(x)
+    x_exp = np.array(expected)
+    vweights_exp = np.array(expectedweights)
+    np.testing.assert_allclose(x, x_exp)
+    np.testing.assert_allclose(vweights, vweights_exp)
 
 
 # def test_aliases(df_jagged):
