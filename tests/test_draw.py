@@ -26,7 +26,6 @@ def df_jagged():
             Jet_eta=[[-2.2, 0.4, 0.5], [], [1.5], [-0.1, -3.0]],
             MET_pt=[46.5, 30.0, 82.0, 8.9],
             eventWeight=[-1., 0., 2.0, 2.0],
-            # Jet_bestidx=[2, None, 0, 1],
         )
     )
     # For ease of visualization:
@@ -132,11 +131,13 @@ cases_noweights = [
     ("max(MET_pt, MET_pt+1)", "", [47.5, 31, 83, 9.9]),
     ("max(min(Jet_pt), MET_pt*2)", "", [93, 164, 17.8]),
     ("10*(1>0) + MET_pt", "MET_pt>40", [56.5, 92]),
+    ("sum(-0.8<Jet_eta<0.8 and Jet_pt>25)", "", [0, 0, 0, 1]),
     ("1", "MET_pt>40", [1, 1]),
     ("10", "", [10, 10, 10, 10]),
-    # ("Jet_pt[Jet_bestidx]", "length(Jet_pt)>0", [10.5, 11.5, 5]),
     ("Jet_eta[argmin(Jet_pt)]", "", [0.5, 1.5, -3.0]),
     ("Jet_eta[argmax(2*Jet_pt)]", "", [-2.2, 1.5, -0.1]),
+    ("Jet_eta[argmax(2*Jet_pt)]", "", [-2.2, 1.5, -0.1]),
+    ("0.5*(Jet_pt[0] + Jet_pt[-1])","length(Jet_pt)>=2", [26.25, 27.5]),
     (
         "Jet_pt:Jet_eta",
         "MET_pt > 40.",
@@ -163,8 +164,10 @@ cases_weights = [
     ("MET_pt", "MET_pt > 40", "eventWeight", [46.5, 82], [-1, 2]),
     ("length(Jet_pt)", "", "eventWeight", [3, 0, 1, 2], [-1, 0, 2, 2]),
     ("length(Jet_pt)", "MET_pt < 10", "eventWeight", [2], [2]),
+    ("Jet_pt[0]:Jet_pt[1]", "", "eventWeight", [[42,15],[50,5]], [-1,2]),
+    ("Jet_pt[0]", "MET_pt>40", "length(Jet_pt)", [42.,11.5], [3,1]),
+    ("Jet_pt[0]", "", "length(Jet_pt)", [42.,11.5,50], [3,1,2]),
 ]
-
 
 @pytest.mark.parametrize("varexp,sel,weights,expected,expectedweights", cases_weights)
 def test_draw_weights(df_jagged, varexp, sel, weights, expected, expectedweights):
@@ -174,6 +177,14 @@ def test_draw_weights(df_jagged, varexp, sel, weights, expected, expectedweights
     vweights_exp = np.array(expectedweights)
     np.testing.assert_allclose(x, x_exp)
     np.testing.assert_allclose(vweights, vweights_exp)
+
+def test_draw_custom_func(df_jagged):
+    df = df_jagged
+    def myfunc(x, y):
+        return x + y
+    x = df.draw("myfunc(Jet_pt,Jet_eta)", "MET_pt > 40.", to_array=True, env=dict(myfunc=myfunc))
+    x_exp = np.array([39.8, 15.4, 11, 13])
+    np.testing.assert_allclose(x, x_exp)
 
 
 # def test_aliases(df_jagged):

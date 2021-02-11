@@ -25,12 +25,15 @@ def _array_ndim(array):
         return array.ndim
     return np.ndim(array)
 
+def _has_mask(vals):
+    if isinstance(vals, np.ma.masked_array) or (
+        hasattr(vals, "layout")
+        and isinstance(vals.layout, awkward1.layout.ByteMaskedArray)
+    ):
+        return True
+    return False
 
-def _tree_draw_to_array(df, varexp, sel="", weights=""):
-    """
-    1d and 2d drawing function that supports jagged columns
-    returns array
-    """
+def _tree_draw_to_array(df, varexp, sel="", weights="", env=dict()):
 
     varexp_exprs = [to_ak_expr(expr) for expr in split_expr_on_free_colon(varexp)]
     weights_expr = to_ak_expr(weights)
@@ -40,6 +43,7 @@ def _tree_draw_to_array(df, varexp, sel="", weights=""):
     loc = {"ak": awkward1, "np": np, "pd": pd}
     for colname in colnames:
         loc[colname] = df[colname].ak(1)
+    loc.update(env)
 
     if sel:
         globalmask = eval(sel_expr, dict(), loc)
@@ -70,61 +74,58 @@ def _tree_draw_to_array(df, varexp, sel="", weights=""):
     if weights:
         vweights = expr_to_vals(weights_expr)
 
-    def has_mask(vals):
-        if isinstance(vals, np.ma.masked_array) or (
-            hasattr(vals, "layout")
-            and isinstance(vals.layout, awkward1.layout.ByteMaskedArray)
-        ):
-            return True
-        return False
+    mask = None
 
     if len(dims) == 1:
         x = dims[0]
-        if has_mask(x):
+        if (_has_mask(x) and np.ndim(x.mask) != 0):
             mask = x.mask
-            if np.ndim(mask) != 0:
-                x = x.data[~mask]
-                if weights:
-                    vweights = vweights.data[~mask]
-            else:
-                x = x.data
-                if weights:
-                    vweights = vweights.data
-            vals = x
+            x = x.data[~mask]
+        elif _has_mask(x):
+            x = x.data
+        vals = x
 
-    # could be simplified
     # if one of the dimensions has a mask, we want to apply the OR
     # of the two to make sure their lengths will be equal
     if len(dims) == 2:
         x, y = dims
-        if (has_mask(x) and np.ndim(x.mask) != 0) or (
-            has_mask(y) and np.ndim(y.mask) != 0
+        if (_has_mask(x) and np.ndim(x.mask) != 0) or (
+            _has_mask(y) and np.ndim(y.mask) != 0
         ):
             mask = x.mask | y.mask
             x = x.data[~mask]
             y = y.data[~mask]
-            if weights:
-                vweights = vweights.data[~mask]
-        else:
-            if has_mask(x):
-                x = x.data
-            if has_mask(y):
-                y = y.data
-            if weights:
-                if has_mask(vweights):
-                    vweights = vweights.data
-
+        elif _has_mask(x):
+            x = x.data
+        elif _has_mask(y):
+            y = y.data
         vals = np.c_[x, y]
+
+    if weights:
+        if mask is not None:
+            vweights = vweights[~mask]
 
     return vals, vweights
 
 
-def tree_draw(df, varexp, sel="", weights="", to_array=False, **kwargs):
+def tree_draw(df, varexp, sel="", weights="", to_array=False, env=dict(), **kwargs):
     """
-    1d and 2d drawing function that supports jagged columns
-    returns hist
+    Draws a 1D or 2D histogram (or an array) from a pandas DataFrame.
+
+    varexp: expression to draw
+    sel: selection expression
+    weights: weight expression
+    to_array: return an array if True, otherwise return a `yahist.Hist1D` or `yahist.Hist2D`
+    env: dictionary of additional symbols needed to parse the expressions
+
+    >>> df.draw("Jet_pt", "MET_pt>40")
+    >>> df.draw("Jet_pt", "MET_pt>40", to_array=True)
+    >>> df.draw("Jet_pt[0]:Jet_pt[1]")
+    >>> df.draw("1", "length(Jet_pt)>2")
+    >>> df.draw("1", "length(Jet_pt[abs(Jet_eta)<2.4])>2")
+    >>> df.draw("sum(-2.4<Jet_eta<2.4 and Jet_pt>25)")
     """
-    array, vweights = _tree_draw_to_array(df, varexp, sel, weights)
+    array, vweights = _tree_draw_to_array(df, varexp, sel, weights, env)
     if to_array:
         if weights:
             return array, vweights
