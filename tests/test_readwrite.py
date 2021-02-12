@@ -3,7 +3,7 @@ import pytest
 import numpy as np
 import pandas as pd
 
-from pdroot import to_root, read_root, ChunkDataFrame
+from pdroot import to_root, read_root, iter_chunks, ChunkDataFrame
 import fletcher
 import awkward0
 import awkward1
@@ -76,6 +76,23 @@ def test_chunkdataframe():
     assert len(df["x"]) == 10
     assert "x" in df.columns
 
+def test_iter_chunks():
+    N = 1000
+    df1 = pd.DataFrame(
+        dict(
+            b1=np.random.normal(3.0, 0.1, N),
+            b2=np.random.random(N),
+            b3=np.random.random(N),
+            b4=np.random.randint(0, 5, N),
+        )
+    )
+    to_root(df1, ".test.root")
+
+    columns = ["b1", "b2"]
+    chunks = list(iter_chunks(".test.root", columns=columns, progress=False, step_size=N//10))
+    assert len(chunks) == 10
+    assert sum(map(len, chunks)) == N
+    assert len(chunks[0].columns) == len(columns)
 
 if __name__ == "__main__":
     pytest.main(["--capture=no", __file__])

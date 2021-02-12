@@ -1,3 +1,4 @@
+import time
 import warnings
 import numpy as np
 import pandas as pd
@@ -169,6 +170,37 @@ def to_root(
                     basket[column] = chunk[column].values
             f[treename].extend(basket)
 
+def iter_chunks(
+    path,
+    treename="t",
+    progress=True,
+    step_size="50MB",
+    columns=None,
+):
+    """
+    Loop over specified ROOT files in `path` in chunks, returning dataframes.
+    Tree name is specified via `treename`.
+    Iterates over the files in chunks of `step_size` (as per `uproot4.iterate`), reading
+
+    columns: list of columns ("branches") to read (default of `None` reads all)
+    """
+    if ":" not in path:
+        path = f"{path}:{treename}"
+
+    iterable = uproot4.iterate(path, filter_name=columns, step_size=step_size)
+
+    if progress:
+        iterable = tqdm(iterable)
+
+    nevents = 0
+    t0 = time.time()
+    for arrays in iterable:
+        df = awkward1_arrays_to_dataframe(arrays)
+        nevents += len(df)
+        yield df
+    t1 = time.time()
+    if progress:
+        print(f"Processed {nevents} in {t1-t0:.2f}s ({1e-6*nevents/(t1-t0):.2f}MHz)")
 
 class ChunkDataFrame(pd.DataFrame):
     filename = None

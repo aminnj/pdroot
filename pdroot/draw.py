@@ -16,7 +16,7 @@ warnings.resetwarnings()
 
 from yahist import Hist1D, Hist2D
 
-from .readwrite import awkward1_arrays_to_dataframe
+from .readwrite import awkward1_arrays_to_dataframe, iter_chunks
 from .parse import variables_in_expr, to_ak_expr, split_expr_on_free_colon
 
 
@@ -155,32 +155,18 @@ def iter_draw(
     Iterates over the files in chunks of `step_size` (as per `uproot4.iterate`), reading
     only the branches deemed necessary according to `pdroot.parse.variables_in_expr`.
     """
-    colnames = variables_in_expr(f"{varexp}${sel}")
+    columns = variables_in_expr(f"{varexp}${sel}")
 
     opts = dict()
     if bins:
         opts["bins"] = bins
     opts.update(kwargs)
 
-    if ":" not in path:
-        path = f"{path}:{treename}"
-    iterable = uproot4.iterate(path, expressions=colnames, step_size=step_size)
-
-    if progress:
-        iterable = tqdm(iterable)
-
-    t0 = time.time()
     hists = []
-    nevents = 0
-    for arrays in iterable:
-        df = awkward1_arrays_to_dataframe(arrays)
-        nevents += len(df)
+    for df in iter_chunks(path, treename=treename, progress=progress, step_size=step_size, columns=columns):
         h = df.draw(varexp, sel, **opts)
         if "bins" not in opts:
             opts["bins"] = h.edges
         hists.append(h)
     h = sum(hists)
-    t1 = time.time()
-    if progress:
-        print(f"Processed {nevents} in {t1-t0:.2f}s ({1e-6*nevents/(t1-t0):.2f}MHz)")
     return h
