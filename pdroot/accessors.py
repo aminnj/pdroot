@@ -4,7 +4,6 @@ import pyarrow
 import pandas as pd
 import uproot3_methods
 import numpy as np
-import numba
 
 from .readwrite import ChunkDataFrame
 
