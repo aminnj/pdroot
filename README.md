@@ -66,7 +66,7 @@ Provided four component branches (`*_{pt,eta,phi,mass}`) are in the dataframe, o
 <JaggedArray [[] [514.605] [20.646055] ... [48.658344 35.758152] []] at 0x00012ad87358>
 ```
 
-#### Drawing
+#### Drawing/evaluating expressions and queries
 
 Drawing from a DataFrame handles jagged columns via [awkward-array](https://github.com/scikit-hep/awkward-1.0) and AST transformations.
 ```python
@@ -92,6 +92,13 @@ df.draw("sum(Jet_pt[abs(Jet_eta)<2.0])", bins="100,0,100")
 
 # use the underlying array before a histogram is created
 df["ht"] = df.draw("sum(Jet_pt[Jet_pt>40])", to_array=True)
+```
+
+The expression parsing can be explored via
+```python
+>>> pdroot.parse.to_ak_expr("sum(Jet_pt[:2])") # sum of first/leading two jet pTs
+
+'ak.sum(ak.pad_none(Jet_pt, 3, clip=True)[:, :2], axis=-1)'
 ```
 
 #### Lazy chunked reading
