@@ -15,10 +15,10 @@ warnings.resetwarnings()
 
 warnings.filterwarnings("ignore", message="numpy.ufunc size changed")
 
-import fletcher
-
 
 def array_to_fletcher_or_numpy(array):
+    import fletcher
+
     arrow_array = awkward1.to_arrow(array)
     fletcher_array = fletcher.FletcherContinuousArray(awkward1.to_arrow(array))
     if (array.ndim >= 2) or (fletcher_array.data.null_count > 0):
@@ -170,12 +170,9 @@ def to_root(
                     basket[column] = chunk[column].values
             f[treename].extend(basket)
 
+
 def iter_chunks(
-    path,
-    treename="t",
-    progress=True,
-    step_size="50MB",
-    columns=None,
+    path, treename="t", progress=True, step_size="50MB", columns=None,
 ):
     """
     Loop over specified ROOT files in `path` in chunks, returning dataframes.
@@ -201,6 +198,7 @@ def iter_chunks(
     t1 = time.time()
     if progress:
         print(f"Processed {nevents} in {t1-t0:.2f}s ({1e-6*nevents/(t1-t0):.2f}MHz)")
+
 
 class ChunkDataFrame(pd.DataFrame):
     filename = None
