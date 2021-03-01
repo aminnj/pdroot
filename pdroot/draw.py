@@ -138,6 +138,13 @@ def tree_draw(df, varexp, sel="", weights="", to_array=False, env=dict(), **kwar
     elif np.ndim(array) == 2:
         return Hist2D(array, **kwargs)
 
+def tree_adraw(*args, **kwargs):
+    """
+    Wrapper around `tree_draw` with to_array=True.
+    """
+    kwargs["to_array"] = True
+    return tree_draw(*args, **kwargs)
+
 
 def iter_draw(
     path,

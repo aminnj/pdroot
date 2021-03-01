@@ -92,7 +92,11 @@ df.draw("sum(Jet_pt[abs(Jet_eta)<2.0])", bins="100,0,100")
 
 # use the underlying array before a histogram is created
 df["ht"] = df.draw("sum(Jet_pt[Jet_pt>40])", to_array=True)
+df["ht"] = df.adraw("sum(Jet_pt[Jet_pt>40])") # think "*a*rray draw"
 ```
+
+`df.adraw` (shortcut for `df.draw(..., to_array=True)`) is a columnar version of `df.eval` from `pandas`,
+which also supports jagged columns.
 
 The expression parsing can be explored via
 ```python
