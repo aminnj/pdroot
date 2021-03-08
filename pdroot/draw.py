@@ -99,7 +99,8 @@ def _tree_draw_to_array(df, varexp, sel="", weights="", env=dict()):
             x = x.data
         elif _has_mask(y):
             y = y.data
-        vals = np.c_[x, y]
+        # vals = np.c_[x, y]
+        vals = (x, y)
 
     if weights:
         if mask is not None:
@@ -131,11 +132,16 @@ def tree_draw(df, varexp, sel="", weights="", to_array=False, env=dict(), **kwar
             return array, vweights
         return array
 
+    if isinstance(array, tuple) and len(array) == 2:
+        ndim = 2
+    else:
+        ndim = np.ndim(array)
+
     if weights:
         kwargs["weights"] = vweights
-    if np.ndim(array) == 1:
+    if ndim == 1:
         return Hist1D(array, **kwargs)
-    elif np.ndim(array) == 2:
+    elif ndim == 2:
         return Hist2D(array, **kwargs)
 
 def tree_adraw(*args, **kwargs):

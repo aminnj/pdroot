@@ -98,8 +98,8 @@ cases_noweights = [
     ("min(Jet_pt)", "", [10.5, 11.5, 5.0]),
     ("max(abs(Jet_eta))", "MET_pt > 80", [1.5]),
     ("max(abs(Jet_eta))", "", [2.2, 1.5, 3.0]),
-    ("Jet_pt[0]:Jet_pt[1]", "MET_pt > 40", [[42, 15]]),
-    ("Jet_pt[0]:Jet_pt[1]", "", [[42, 15], [50, 5]]),
+    ("Jet_pt[0]:Jet_pt[1]", "MET_pt > 40", ([42], [15])),
+    ("Jet_pt[0]:Jet_pt[1]", "", ([42, 50], [15, 5])),
     ("Jet_pt[2]", "", [10.5]),
     ("Jet_pt[-1]", "", [10.5, 11.5, 5.0]),
     ("Jet_pt[Jet_pt>25]", "", [42, 50]),
@@ -141,7 +141,7 @@ cases_noweights = [
     (
         "Jet_pt:Jet_eta",
         "MET_pt > 40.",
-        [[42, -2.2], [15, 0.4], [10.5, 0.5], [11.5, 1.5]],
+        ([42, 15, 10.5, 11.5], [-2.2, 0.4, 0.5, 1.5]),
     ),
     (
         "(MET_pt>40) and sum((Jet_pt>40) and (abs(Jet_eta)<2.4)) >= 1",
@@ -164,7 +164,7 @@ cases_weights = [
     ("MET_pt", "MET_pt > 40", "eventWeight", [46.5, 82], [-1, 2]),
     ("length(Jet_pt)", "", "eventWeight", [3, 0, 1, 2], [-1, 0, 2, 2]),
     ("length(Jet_pt)", "MET_pt < 10", "eventWeight", [2], [2]),
-    ("Jet_pt[0]:Jet_pt[1]", "", "eventWeight", [[42,15],[50,5]], [-1,2]),
+    ("Jet_pt[0]:Jet_pt[1]", "", "eventWeight", ([42,50],[15,5]), [-1,2]),
     ("Jet_pt[0]", "MET_pt>40", "length(Jet_pt)", [42.,11.5], [3,1]),
     ("Jet_pt[0]", "", "length(Jet_pt)", [42.,11.5,50], [3,1,2]),
 ]
