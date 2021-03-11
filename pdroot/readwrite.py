@@ -206,8 +206,9 @@ class ChunkDataFrame(pd.DataFrame):
     entry_start = None
     entry_stop = None
     tree = None
+    orig_index = None
 
-    _metadata = ["filename", "treename", "entry_start", "entry_stop", "tree"]
+    _metadata = ["filename", "treename", "entry_start", "entry_stop", "tree", "orig_index"]
 
     def __init__(self, *args, **kwargs):
         self.filename = kwargs.pop("filename", None)
@@ -230,7 +231,19 @@ class ChunkDataFrame(pd.DataFrame):
             entry_start=self.entry_start, entry_stop=self.entry_stop
         )
         array = array_to_fletcher_or_numpy(array)
+
+        # if current index is not the original one,
+        # then take the subset of the ttree column with the right indexing
+        if self.orig_index is not None:
+            same_index = self.orig_index.equals(self.index)
+            array = array[self.index.values]
+
         self[column] = array
+
+        # the first time we add a column, keep track of this original indexing
+        if self.orig_index is None:
+            self.orig_index = self.index
+
 
     def _possibly_cache(self, key):
         is_str = isinstance(key, (str))

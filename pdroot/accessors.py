@@ -20,6 +20,8 @@ def pandas_series_to_awkward(series, version=0):
 
     if version == 0:
         array = awkward0.fromarrow(array_arrow)
+        if "MaskedArray" in str(type(array)):
+            array = array._content[array.boolmask()]
     elif version == 1:
         array = awkward1.from_arrow(array_arrow)
     else:

@@ -66,7 +66,7 @@ def test_p4_accessor():
 
 def test_chunkdataframe():
     x = fletcher.FletcherContinuousArray(100 * [[1.0, 2.0], [], [3.0, 4.0, 5.0]])
-    y = np.zeros(len(x), dtype=float)
+    y = np.arange(len(x), dtype=float)
     df = pd.DataFrame(dict(x=x, y=y))
     df.to_root(".test.root", compression_jagged=None)
     df = ChunkDataFrame(
@@ -75,6 +75,23 @@ def test_chunkdataframe():
     assert "x" not in df.columns
     assert len(df["x"]) == 10
     assert "x" in df.columns
+
+def test_chunkdataframe_subset():
+    x = fletcher.FletcherContinuousArray(100 * [[1.0, 2.0], [], [3.0, 4.0, 5.0]])
+    y = np.arange(len(x), dtype=float)
+    df = pd.DataFrame(dict(x=x, y=y))
+    df.to_root(".test.root", compression_jagged=None)
+    df = ChunkDataFrame(
+        filename=".test.root", treename="t", entry_start=0, entry_stop=10
+    )
+
+    _ = df["x"]
+    # subset of dataframe
+    myslice = slice(0,10,2)
+    df = df.iloc[myslice]
+    # now check that the right subset of y is read
+    _ = df["y"]
+    assert (df["y"] == y[myslice]).all()
 
 def test_iter_chunks():
     N = 1000
