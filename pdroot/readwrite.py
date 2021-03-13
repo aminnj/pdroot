@@ -20,7 +20,7 @@ def array_to_fletcher_or_numpy(array):
     import fletcher
 
     arrow_array = awkward1.to_arrow(array)
-    fletcher_array = fletcher.FletcherContinuousArray(awkward1.to_arrow(array))
+    fletcher_array = fletcher.FletcherContinuousArray(arrow_array)
     if (array.ndim >= 2) or (fletcher_array.data.null_count > 0):
         return fletcher_array
     if "list<" not in str(fletcher_array.dtype):

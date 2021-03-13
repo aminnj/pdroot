@@ -96,7 +96,8 @@ df["ht"] = df.adraw("sum(Jet_pt[Jet_pt>40])") # think "*a*rray draw"
 ```
 
 `df.adraw` (shortcut for `df.draw(..., to_array=True)`) is a columnar version of `df.eval` from `pandas`,
-which also supports jagged columns.
+which also supports jagged columns. For operations on a handful of arrays, `df.adraw` is a little faster than
+`df.eval` (which uses numexpr), at the cost of memory from intermediate array allocations.
 
 The expression parsing can be explored via
 ```python
@@ -111,17 +112,22 @@ The expression parsing can be explored via
 ```python
 df = pdroot.ChunkDataFrame(filename="nano.root", entry_start=0, entry_stop=100e3)
 
-pt = df["Jet_pt"].ak()
-df["ht"] = pt[pt > 40].sum()
+# keeps track of original indexing, so if subsetted,
+# any newly read arrays will be modified to match
+df = df[df["MET_pt"]>40]
+
+pt = df["Jet_pt"].ak() # awkward0
+df["ht"] = pt[pt>40].sum()
+# or
+df["ht"] = df.adraw("sum(Jet_pt[Jet_pt>40])")
 
 df.head()
 ```
 
-|    | Jet_pt                                                                 |      ht |
-|---:|:-----------------------------------------------------------------------|--------:|
-|  0 | [270.75       85.5        39.90625    29.71875    27.453125   20.53125 18.234375   15.4140625] | 356.25  |
-|  1 | [145.75     144.375     64.6875    59.1875    25.875     17.546875]    | 414     |
-|  2 | [343.5       91.5       63.5625    57.15625   29.984375]               | 555.719 |
-|  3 | [192.625    108.125     56.40625   55.75      33.40625   24.140625  21.625     21.3125    17.25      16.75      16.125   ]   | 412.906 |
-|  4 | [105.4375    85.6875    73.        54.5       53.875     40.78125    29.328125  24.484375  23.34375 ]  | 413.281 |
-
+|    |   MET_pt | Jet_pt                                                                    |      ht |
+|---:|---------:|:--------------------------------------------------------------------------|--------:|
+|  1 |  88.9181 | [90.5625   60.28125  57.78125  34.40625  31.875    24.203125 19.21875  18.484375]     | 208.625 |
+|  2 |  47.4594 | [152.375    98.       72.75     70.75     48.28125  18.21875]             | 442.156 |
+|  3 |  68.5163 | [221.375     182.875      96.8125     83.5        43.         40.65625 25.34375    20.8125     18.015625   16.140625   15.53125    15.0390625]   | 668.219 |
+|  5 | 130.703  | [126.8125    69.875     64.75      41.84375   23.859375  21.15625 19.734375  15.796875]        | 303.281 |
+|  7 | 131.178  | [63.3125   48.96875  42.78125  33.8125   33.21875  18.5625   16.203125]   | 155.062 |
