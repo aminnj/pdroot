@@ -61,7 +61,7 @@ def convert_root_to_python(expr):
     return expr
 
 def compare(ch, df, varexp_root, sel_root, varexp_python="", sel_python=""):
-    print(f"Checking: {varexp_root} [{sel_root}] ... ", end="")
+    print(f"Checking: \033[4m{varexp_root} [{sel_root}\033[0m] ... ", end="")
     if not varexp_python:
         varexp_python = convert_root_to_python(varexp_root)
     if not sel_python:
@@ -70,10 +70,10 @@ def compare(ch, df, varexp_root, sel_root, varexp_python="", sel_python=""):
     N = ch.Draw(varexp_root, sel_root, "goff")
     raw = ch.GetV1()
     vals_root = np.array([raw[i] for i in range(N)])
-    vals_python = df.draw_to_array(varexp_python, sel_python)
+    vals_python = df.adraw(varexp_python, sel_python)
     print(f"comparing {len(vals_root)} vs {len(vals_python)} elements ... ", end="")
     np.testing.assert_allclose(vals_root, vals_python)
-    print("succeeded!")
+    print("\033[92msucceeded!\033[0m")
 
 if __name__ == "__main__":
 

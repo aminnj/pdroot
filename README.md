@@ -119,7 +119,7 @@ df = df[df["MET_pt"]>40]
 pt = df["Jet_pt"].ak() # awkward0
 df["ht"] = pt[pt>40].sum()
 # or
-df["ht"] = df.adraw("sum(Jet_pt[Jet_pt>40])")
+df["ht"] = df.adraw("sum(Jet_pt*(Jet_pt>40))")
 
 df.head()
 ```
