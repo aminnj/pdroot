@@ -25,6 +25,7 @@ def _array_ndim(array):
         return array.ndim
     return np.ndim(array)
 
+
 def _has_mask(vals):
     if isinstance(vals, np.ma.masked_array) or (
         hasattr(vals, "layout")
@@ -32,6 +33,7 @@ def _has_mask(vals):
     ):
         return True
     return False
+
 
 def _tree_draw_to_array(df, varexp, sel="", weights="", env=dict()):
 
@@ -78,7 +80,7 @@ def _tree_draw_to_array(df, varexp, sel="", weights="", env=dict()):
 
     if len(dims) == 1:
         x = dims[0]
-        if (_has_mask(x) and np.ndim(x.mask) != 0):
+        if _has_mask(x) and np.ndim(x.mask) != 0:
             mask = x.mask
             x = x.data[~mask]
         elif _has_mask(x):
@@ -144,6 +146,7 @@ def tree_draw(df, varexp, sel="", weights="", to_array=False, env=dict(), **kwar
     elif ndim == 2:
         return Hist2D(array, **kwargs)
 
+
 def tree_adraw(*args, **kwargs):
     """
     Wrapper around `tree_draw` with to_array=True.
@@ -160,6 +163,7 @@ def iter_draw(
     bins=None,
     progress=True,
     step_size="50MB",
+    nthreads=4,
     **kwargs,
 ):
     """
@@ -176,7 +180,14 @@ def iter_draw(
     opts.update(kwargs)
 
     hists = []
-    for df in iter_chunks(path, treename=treename, progress=progress, step_size=step_size, columns=columns):
+    for df in iter_chunks(
+        path,
+        treename=treename,
+        progress=progress,
+        step_size=step_size,
+        columns=columns,
+        nthreads=nthreads,
+    ):
         h = df.draw(varexp, sel, **opts)
         if "bins" not in opts:
             opts["bins"] = h.edges

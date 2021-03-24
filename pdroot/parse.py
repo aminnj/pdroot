@@ -112,7 +112,9 @@ class Transformer(ast.NodeTransformer):
                     node.func.id = "ak." + node.func.id
                     node.keywords.append(ast.keyword("axis", ast.Constant(-1)))
                     if name in ["argmin", "argmax"]:
-                        node.keywords.append(ast.keyword("keepdims", ast.Constant(True)))
+                        node.keywords.append(
+                            ast.keyword("keepdims", ast.Constant(True))
+                        )
                     self.nreducers += 1
                 elif (len(node.args) == 2) and name in ["min", "max"]:
                     node.func.id = {"min": "np.minimum", "max": "np.maximum"}[name]

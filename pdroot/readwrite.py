@@ -1,5 +1,6 @@
 import time
 import warnings
+import concurrent.futures
 import numpy as np
 import pandas as pd
 from tqdm.auto import tqdm
@@ -172,7 +173,7 @@ def to_root(
 
 
 def iter_chunks(
-    path, treename="t", progress=True, step_size="50MB", columns=None,
+    path, treename="t", progress=True, step_size="50MB", columns=None, nthreads=4,
 ):
     """
     Loop over specified ROOT files in `path` in chunks, returning dataframes.
@@ -184,7 +185,12 @@ def iter_chunks(
     if ":" not in path:
         path = f"{path}:{treename}"
 
-    iterable = uproot4.iterate(path, filter_name=columns, step_size=step_size)
+    iterable = uproot4.iterate(
+        path,
+        filter_name=columns,
+        step_size=step_size,
+        decompression_executor=concurrent.futures.ThreadPoolExecutor(nthreads),
+    )
 
     if progress:
         iterable = tqdm(iterable)
@@ -208,7 +214,14 @@ class ChunkDataFrame(pd.DataFrame):
     tree = None
     orig_index = None
 
-    _metadata = ["filename", "treename", "entry_start", "entry_stop", "tree", "orig_index"]
+    _metadata = [
+        "filename",
+        "treename",
+        "entry_start",
+        "entry_stop",
+        "tree",
+        "orig_index",
+    ]
 
     def __init__(self, *args, **kwargs):
         self.filename = kwargs.pop("filename", None)
@@ -243,7 +256,6 @@ class ChunkDataFrame(pd.DataFrame):
         # the first time we add a column, keep track of this original indexing
         if self.orig_index is None:
             self.orig_index = self.index
-
 
     def _possibly_cache(self, key):
         is_str = isinstance(key, (str))

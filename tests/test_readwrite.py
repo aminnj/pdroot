@@ -76,6 +76,7 @@ def test_chunkdataframe():
     assert len(df["x"]) == 10
     assert "x" in df.columns
 
+
 def test_chunkdataframe_subset():
     x = fletcher.FletcherContinuousArray(100 * [[1.0, 2.0], [], [3.0, 4.0, 5.0]])
     y = np.arange(len(x), dtype=float)
@@ -87,11 +88,12 @@ def test_chunkdataframe_subset():
 
     _ = df["x"]
     # subset of dataframe
-    myslice = slice(0,10,2)
+    myslice = slice(0, 10, 2)
     df = df.iloc[myslice]
     # now check that the right subset of y is read
     _ = df["y"]
     assert (df["y"] == y[myslice]).all()
+
 
 def test_iter_chunks():
     N = 1000
@@ -106,10 +108,13 @@ def test_iter_chunks():
     to_root(df1, ".test.root")
 
     columns = ["b1", "b2"]
-    chunks = list(iter_chunks(".test.root", columns=columns, progress=False, step_size=N//10))
+    chunks = list(
+        iter_chunks(".test.root", columns=columns, progress=False, step_size=N // 10)
+    )
     assert len(chunks) == 10
     assert sum(map(len, chunks)) == N
     assert len(chunks[0].columns) == len(columns)
+
 
 if __name__ == "__main__":
     pytest.main(["--capture=no", __file__])
