@@ -6,11 +6,13 @@ import pandas as pd
 from tqdm.auto import tqdm
 
 import uproot4
-import awkward1
 
 warnings.simplefilter("ignore", category=FutureWarning)
-import uproot3
-import awkward0
+
+from .utils import lazy_import
+awkward1 = lazy_import("awkward1")
+uproot3 = lazy_import("uproot3")
+awkward0 = lazy_import("awkward0")
 
 warnings.resetwarnings()
 
@@ -119,8 +121,10 @@ def to_root(
     filename,
     treename="t",
     chunksize=20e3,
-    compression=uproot3.ZLIB(1),
-    compression_jagged=uproot3.ZLIB(1),
+    # compression=uproot3.ZLIB(1),
+    # compression_jagged=uproot3.ZLIB(1),
+    compression="zlib(1)",
+    compression_jagged="zlib(1)",
     progress=False,
 ):
     """
@@ -129,9 +133,18 @@ def to_root(
     filename: name of output file
     treename: name of output TTree
     chunksize: number of rows per basket
-    compression: uproot compression object (LZ4, ZLIB, LZMA, or None)
+    compression: uproot compression object ("zlib(1)", "lz4(3)", "lzma(9)", ..., or None)
     progress: show tqdm progress bar?
     """
+    def get_compressor(s):
+        name, level = s.strip().rstrip(")").split("(",1)
+        name = name.upper()
+        level = int(level)
+        return getattr(uproot3, name)(level)
+    if compression is not None:
+        compression = get_compressor(compression)
+    if compression_jagged is not None:
+        compression_jagged = get_compressor(compression_jagged)
     tree_dtypes = dict()
     jagged_branches = []
     for bname, dtype in df.dtypes.items():

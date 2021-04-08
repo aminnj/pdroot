@@ -5,10 +5,12 @@ import pandas as pd
 import warnings
 
 warnings.simplefilter("ignore", category=FutureWarning)
-import uproot3
-import uproot4
 
-import awkward1
+from .utils import lazy_import
+awkward1 = lazy_import("awkward1")
+uproot3 = lazy_import("uproot3")
+uproot4 = lazy_import("uproot4")
+awkward0 = lazy_import("awkward0")
 
 from tqdm.auto import tqdm
 
