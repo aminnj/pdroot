@@ -1,9 +1,8 @@
-import awkward0
-import awkward1
 import pyarrow
 import pandas as pd
-import uproot3_methods
 import numpy as np
+
+from .utils import awkward0, awkward1, uproot3_methods
 
 from .readwrite import ChunkDataFrame
 

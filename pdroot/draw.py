@@ -2,19 +2,9 @@ import time
 import numpy as np
 import pandas as pd
 
-import warnings
-
-warnings.simplefilter("ignore", category=FutureWarning)
-
-from .utils import lazy_import
-awkward1 = lazy_import("awkward1")
-uproot3 = lazy_import("uproot3")
-uproot4 = lazy_import("uproot4")
-awkward0 = lazy_import("awkward0")
+from .utils import awkward0, awkward1, uproot3, uproot4
 
 from tqdm.auto import tqdm
-
-warnings.resetwarnings()
 
 from yahist import Hist1D, Hist2D
 

@@ -7,14 +7,7 @@ from tqdm.auto import tqdm
 
 import uproot4
 
-warnings.simplefilter("ignore", category=FutureWarning)
-
-from .utils import lazy_import
-awkward1 = lazy_import("awkward1")
-uproot3 = lazy_import("uproot3")
-awkward0 = lazy_import("awkward0")
-
-warnings.resetwarnings()
+from .utils import awkward0, awkward1, uproot3
 
 warnings.filterwarnings("ignore", message="numpy.ufunc size changed")
 
@@ -121,8 +114,6 @@ def to_root(
     filename,
     treename="t",
     chunksize=20e3,
-    # compression=uproot3.ZLIB(1),
-    # compression_jagged=uproot3.ZLIB(1),
     compression="zlib(1)",
     compression_jagged="zlib(1)",
     progress=False,
