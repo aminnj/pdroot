@@ -20,6 +20,7 @@ RESERVED_TOKENS = [
     "len",
     "True",
     "False",
+    "in",
 ]
 
 
@@ -75,9 +76,17 @@ class Transformer(ast.NodeTransformer):
         self.generic_visit(node)
         return ast.Invert()
 
+    # "a in [1, 2]" -> "np.isin(a, [1, 2])
     # "a < b < c" -> "(a < b) and (b < c)"
     def visit_Compare(self, node):
-        if len(node.ops) >= 2:
+        if len(node.ops) == 1:
+            if isinstance(node.ops[0], ast.In):
+                node = ast.Call(
+                    func=ast.Name("np.isin"),
+                    args=[node.left, node.comparators[0]],
+                    keywords=[],
+                )
+        elif len(node.ops) >= 2:
             # from pandas/core/computation/expr.py
             left = node.left
             values = []

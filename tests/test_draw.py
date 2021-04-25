@@ -28,16 +28,18 @@ def df_jagged():
             eventWeight=[-1.0, 0.0, 2.0, 2.0],
         )
     )
+    df = awkward1_arrays_to_dataframe(a)
+    df["sr"] = ["foo","bar","baz","foo"]
     # For ease of visualization:
     """
-    |    | Jet_pt           | Jet_eta          |   MET_pt | eventWeight |
-    |----|------------------|------------------|----------|-------------|
-    |  0 | [42.  15.  10.5] | [-2.2  0.4  0.5] |     46.5 |        -1.0 |
-    |  1 | []               | []               |     30   |         0.0 |
-    |  2 | [11.5]           | [1.5]            |     82   |         2.0 |
-    |  3 | [50.  5.]        | [-0.1 -3. ]      |      8.9 |         2.0 |
+    |    | Jet_pt           | Jet_eta          |   MET_pt |   sr | eventWeight |
+    |----|------------------|------------------|----------|------|-------------|
+    |  0 | [42.  15.  10.5] | [-2.2  0.4  0.5] |     46.5 |  foo |        -1.0 |
+    |  1 | []               | []               |     30   |  bar |         0.0 |
+    |  2 | [11.5]           | [1.5]            |     82   |  baz |         2.0 |
+    |  3 | [50.  5.]        | [-0.1 -3. ]      |      8.9 |  foo |         2.0 |
     """
-    return awkward1_arrays_to_dataframe(a)
+    return df
 
 
 def test_draw_1d(df_flat):
@@ -144,6 +146,7 @@ cases_noweights = [
         "",
         [True, False, False, False],
     ),
+    ("MET_pt", "(sr in ['foo','bar']) and MET_pt>10", [46.5, 30],),
 ]
 
 

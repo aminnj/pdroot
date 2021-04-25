@@ -44,7 +44,10 @@ def _tree_draw_to_array(df, varexp, sel="", weights="", env=dict()):
     colnames = variables_in_expr(f"{varexp}${sel}${weights}")
     loc = {"ak": awkward1, "np": np, "pd": pd}
     for colname in colnames:
-        loc[colname] = df[colname].ak(1)
+        version = 1
+        if df[colname].dtype == np.dtype("O"):
+            version = 0
+        loc[colname] = df[colname].ak(version)
     loc.update(env)
 
     if sel:
@@ -175,7 +178,7 @@ def iter_draw(
     columns = variables_in_expr(f"{varexp}${sel}")
 
     opts = dict()
-    if bins:
+    if bins is not None:
         opts["bins"] = bins
     opts.update(kwargs)
 
