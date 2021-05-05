@@ -63,6 +63,8 @@ def _tree_draw_to_array(df, varexp, sel="", weights="", env=dict()):
             vals = vals * np.ones(len(df))
 
         if sel:
+            if _array_ndim(vals) < _array_ndim(globalmask):
+                vals, _ = awkward1.broadcast_arrays(vals, globalmask)
             vals = vals[globalmask]
 
         if _array_ndim(vals) > 1:

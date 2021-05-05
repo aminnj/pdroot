@@ -140,6 +140,7 @@ cases_noweights = [
     ("Jet_eta[argmax(2*Jet_pt)]", "", [-2.2, 1.5, -0.1]),
     ("Jet_eta[argmax(2*Jet_pt)]", "", [-2.2, 1.5, -0.1]),
     ("0.5*(Jet_pt[0] + Jet_pt[-1])", "length(Jet_pt)>=2", [26.25, 27.5]),
+    ("MET_pt", "Jet_pt>12", [46.5, 46.5, 8.9]),
     ("Jet_pt:Jet_eta", "MET_pt > 40.", ([42, 15, 10.5, 11.5], [-2.2, 0.4, 0.5, 1.5]),),
     (
         "(MET_pt>40) and sum((Jet_pt>40) and (abs(Jet_eta)<2.4)) >= 1",
