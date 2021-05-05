@@ -8,7 +8,7 @@ import numpy as np
 from .readwrite import ChunkDataFrame
 
 
-def pandas_series_to_awkward(series, version=0):
+def pandas_series_to_awkward(series, version=1):
     values = series.values
     if "fletcher" not in str(values.dtype).lower():
         if version == 1:
@@ -36,7 +36,7 @@ class AwkwardArrayAccessor:
     def __init__(self, obj):
         self._obj = obj
 
-    def __call__(self, version=0):
+    def __call__(self, version=1):
         # version=0 returns an awkward0 array, version1 returns awkward1
         return pandas_series_to_awkward(self._obj, version=version)
 
@@ -46,7 +46,7 @@ class AwkwardArraysAccessor:
     def __init__(self, pandas_obj):
         self._obj = pandas_obj
 
-    def __call__(self, version=0):
+    def __call__(self, version=1):
         df = self._obj
         if version == 0:
             return awkward0.Table(

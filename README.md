@@ -22,7 +22,7 @@ df = pd.read_root("test.root", columns=["foo"], entry_start=0, entry_stop=50)
 ### Histogram drawing from DataFrames
 
 For those familiar with ROOT's `TTree::Draw()`, you can compute a histogram directly from a dataframe.
-All kwargs after first two required args are passed to a [yahist](https://github.com/aminnj/yahist) Hist1D().
+All kwargs after first two required args are passed to a [yahist](https://github.com/aminnj/yahist) `Hist1D`/`Hist2D`.
 "Jagged" branches are also supported (see below).
 ```python
 # expression string and a query/selection string
@@ -54,9 +54,8 @@ df.head()
 It's easy to get the awkward array from the fletcher columns (also a zero-copy operation):
 ```python
 >>> df["Electron_pt"].ak() 
-# or ak(1) to get an `awkward1` array instead of the default `awkward0`
 
-<JaggedArray [[] [121.077896] [12.117786] ... [48.620327 35.415432] []] at 0x0001199ba5f8>
+<Array [[], [121], ... [179], [19.7, 14.4]] type='4273 * var * float64'>
 ```
 
 Provided four component branches (`*_{pt,eta,phi,mass}`) are in the dataframe, one can do
@@ -65,6 +64,7 @@ Provided four component branches (`*_{pt,eta,phi,mass}`) are in the dataframe, o
 
 <JaggedArray [[] [514.605] [20.646055] ... [48.658344 35.758152] []] at 0x00012ad87358>
 ```
+Note that this uses `awkward0` and `uproot3_methods` (to be changed to `awkward1` and `vector` eventually).
 
 #### Drawing/evaluating expressions and queries
 
@@ -116,8 +116,8 @@ df = pdroot.ChunkDataFrame(filename="nano.root", entry_start=0, entry_stop=100e3
 # any newly read arrays will be modified to match
 df = df[df["MET_pt"]>40]
 
-pt = df["Jet_pt"].ak() # awkward0
-df["ht"] = pt[pt>40].sum()
+pt = df["Jet_pt"].ak()
+df["ht"] = ak.sum(pt[pt>40])
 # or
 df["ht"] = df.adraw("sum(Jet_pt*(Jet_pt>40))")
 
