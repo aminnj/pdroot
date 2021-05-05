@@ -51,14 +51,18 @@ df.head()
 |  3 | [0.17492676]              | [-0.04089355]             | [2.9018555]           | [178.91772]           |  26.7631 |
 |  4 | [ 0.12136841 -1.8227539 ] | [-0.00730515 -0.00543594] | [1.4355469 1.3552246] | [19.721205 14.386331] |  48.4577 |
 
-It's easy to get the awkward array from the fletcher columns (also a zero-copy operation):
+It's easy to get the awkward array(s) from the fletcher columns (also a zero-copy operation):
 ```python
 >>> df["Electron_pt"].ak() 
 
 <Array [[], [121], ... [179], [19.7, 14.4]] type='4273 * var * float64'>
+
+>>> df[["Electron_pt","Electron_eta"]].ak()
+
+<Array [{Electron_pt: [], ... -1.82]}] type='4273 * {"Electron_pt": option[var * fl...'>
 ```
 
-Provided four component branches (`*_{pt,eta,phi,mass}`) are in the dataframe, one can do
+Provided the four component branches (`*_{pt,eta,phi,mass}`) are in the dataframe, one can do
 ```python
 >>> df.p4("Electron").p
 
