@@ -40,6 +40,12 @@ def awkward1_arrays_to_dataframe(arrays):
     )
     return df
 
+def to_pandas(obj):
+    fields = awkward1.fields(obj)
+    if len(fields) == 0:
+        return pd.Series(array_to_fletcher_or_numpy(obj), copy=False)
+    else:
+        return awkward1_arrays_to_dataframe(obj)
 
 def maybe_unmask_jagged_array(array):
     """

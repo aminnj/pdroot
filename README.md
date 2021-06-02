@@ -62,13 +62,11 @@ It's easy to get the awkward array(s) from the fletcher columns (also a zero-cop
 <Array [{Electron_pt: [], ... -1.82]}] type='4273 * {"Electron_pt": option[var * fl...'>
 ```
 
-Provided the four component branches (`*_{pt,eta,phi,mass}`) are in the dataframe, one can do
+A jagged array can be introduced back into a DataFrame:
 ```python
->>> df.p4("Electron").p
-
-<JaggedArray [[] [514.605] [20.646055] ... [48.658344 35.758152] []] at 0x00012ad87358>
+from pdroot import to_pandas
+dfc["Electron_good"] = to_pandas(dfc["Electron_pt"].ak() > 40)
 ```
-Note that this uses `awkward0` and `uproot3_methods` (to be changed to `awkward1` and `vector` eventually).
 
 #### Drawing/evaluating expressions and queries
 
